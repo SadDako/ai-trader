@@ -1,4 +1,22 @@
+# dependencies
 node_modules
+
+# build
 dist
+
+# environment / secrets — NUNCA commitar
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# dados gerados em runtime
+data/
 *.log
+
+# editor / OS
+.DS_Store
+Thumbs.db
+.idea
+.vscode
