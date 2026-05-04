@@ -5,9 +5,9 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "start": "node --loader ts-node/esm --no-warnings src/index.ts",
-    "dev": "node --loader ts-node/esm --no-warnings src/index.ts",
-    "web": "node --loader ts-node/esm --no-warnings src/server/index.ts",
+    "start": "tsx src/index.ts",
+    "dev": "tsx watch src/index.ts",
+    "web": "tsx src/server/index.ts",
     "build": "tsc",
     "serve": "node dist/index.js"
   },
@@ -23,6 +23,7 @@
     "@types/express": "^5.0.6",
     "@types/node": "^25.6.0",
     "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
     "typescript": "^6.0.3"
   }
 }

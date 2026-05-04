@@ -2,6 +2,10 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const DECISIONS_FILE = resolve(process.cwd(), "data", "decisions.json");
+const TAXA_OPERACAO_PCT = 0.1;
+const TAXA_ROUND_TRIP_PCT = TAXA_OPERACAO_PCT * 2;
+const SLIPPAGE_PCT = 0.05;
+const SLIP = SLIPPAGE_PCT / 100;
 
 interface DecisionRecord {
   decisao?: unknown;
@@ -38,9 +42,19 @@ function round(value: number, decimals = 2): number {
 
 function tradeReturnPct(decisao: string, precoEntrada: number, precoAtual: number): number {
   if (precoEntrada === 0) return 0;
-  if (decisao === "compra") return ((precoAtual - precoEntrada) / precoEntrada) * 100;
-  if (decisao === "venda") return ((precoEntrada - precoAtual) / precoEntrada) * 100;
-  return 0;
+  let bruto = 0;
+  if (decisao === "compra") {
+    const entrada = precoEntrada * (1 + SLIP);
+    const saida = precoAtual * (1 - SLIP);
+    bruto = ((saida - entrada) / entrada) * 100;
+  } else if (decisao === "venda") {
+    const entrada = precoEntrada * (1 - SLIP);
+    const saida = precoAtual * (1 + SLIP);
+    bruto = ((entrada - saida) / entrada) * 100;
+  } else {
+    return 0;
+  }
+  return bruto - TAXA_ROUND_TRIP_PCT;
 }
 
 export function computePerformance(): PerformanceMetrics {

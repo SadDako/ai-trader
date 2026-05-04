@@ -1,17 +1,17 @@
-import { getMarketData } from "../services/market.service.js";
-import { tecnicoAgent } from "../agents/tecnico.agent.js";
-import { analyzePatterns } from "../utils/patternAnalysis.js";
-import { computeRSI } from "../utils/rsi.js";
-import { computeScore } from "../utils/score.js";
-import { analyzeTrend } from "../utils/trendAnalysis.js";
-import { computeMomentum } from "../utils/momentum.js";
-import { detectBreakout } from "../utils/breakout.js";
-import { shouldForceExploration } from "../utils/forceExploration.js";
-import { checkBootstrap } from "../utils/bootstrap.js";
-import { checkInactivity, checkLowFrequency } from "../utils/inactivityCheck.js";
-import { checkLossCooldown } from "../utils/lossCooldown.js";
-import { updateMarketMemory, breakoutAtivo } from "../state/marketMemory.js";
-import type { TecnicoAnalysis } from "../types/index.js";
+import { getMarketData } from "../services/market.service";
+import { tecnicoAgent } from "../agents/tecnico.agent";
+import { analyzePatterns } from "../utils/patternAnalysis";
+import { computeRSI } from "../utils/rsi";
+import { computeScore } from "../utils/score";
+import { analyzeTrend } from "../utils/trendAnalysis";
+import { computeMomentum } from "../utils/momentum";
+import { detectBreakout } from "../utils/breakout";
+import { shouldForceExploration } from "../utils/forceExploration";
+import { checkBootstrap } from "../utils/bootstrap";
+import { checkInactivity, checkLowFrequency } from "../utils/inactivityCheck";
+import { checkLossCooldown } from "../utils/lossCooldown";
+import { updateMarketMemory, breakoutAtivo } from "../state/marketMemory";
+import type { TecnicoAnalysis } from "../types/index";
 
 export interface TradingCycleResult {
   ativo: string;

@@ -612,7 +612,7 @@
         return;
       }
       const data = decisionsDoAtivo(decisions, ativoSelecionado)
-        .filter((d) => typeof d.precoEntrada === "number")
+        .filter((d) => typeof d.precoEntrada === "number" && Number.isFinite(d.precoEntrada))
         .slice(-60);
       const sig = ativoSelecionado + ":" + data.length + ":" + (data.length ? data[data.length - 1].timestamp : "");
       if (sig === lastChartSignature) return;
@@ -648,7 +648,6 @@
         svgContent += '<text class="axis-label" x="' + (padL - 6) + '" y="' + (yv + 3) + '" text-anchor="end">' + fmtNum(v) + "</text>";
       }
       // SMAs (calculadas no frontend a partir dos preços visíveis)
-      const precos = data.map((d) => d.precoEntrada);
       const sma = (values, period) => {
         const out = [];
         for (let i = 0; i < values.length; i++) {
@@ -695,9 +694,14 @@
         const tooltip = d.decisao.toUpperCase() + " @ " + fmtNum(d.precoEntrada) + " — " + fmtTs(d.timestamp) + " — " + resKey;
         svgContent += '<path class="marker-shape ' + dirCls + " " + resCls + '" d="' + triPath(cx, cy, dir) + '"><title>' + tooltip + "</title></path>";
       });
-      // x-axis labels (first/last)
-      svgContent += '<text class="axis-label" x="' + padL + '" y="' + (H - 8) + '">' + fmtTs(data[0].timestamp).split(" ")[1] + "</text>";
-      svgContent += '<text class="axis-label" x="' + (W - padR) + '" y="' + (H - 8) + '" text-anchor="end">' + fmtTs(data[data.length - 1].timestamp).split(" ")[1] + "</text>";
+      // x-axis labels (first/last) — defensivo contra timestamp inválido
+      const xLabel = (ts) => {
+        const formatted = fmtTs(ts);
+        const parts = formatted.split(" ");
+        return parts[1] || parts[0] || "—";
+      };
+      svgContent += '<text class="axis-label" x="' + padL + '" y="' + (H - 8) + '">' + xLabel(data[0].timestamp) + "</text>";
+      svgContent += '<text class="axis-label" x="' + (W - padR) + '" y="' + (H - 8) + '" text-anchor="end">' + xLabel(data[data.length - 1].timestamp) + "</text>";
       svg.innerHTML = svgContent;
     }
 
@@ -841,14 +845,20 @@
       updateBotStatus(lastDoAtivo && lastDoAtivo.timestamp);
     }
 
+    async function safeFetchJson(url) {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error(url + " → HTTP " + res.status);
+      return res.json();
+    }
+
     async function refresh() {
       try {
         const [decisions, perf] = await Promise.all([
-          fetch("/decisions").then((r) => r.json()),
-          fetch("/performance").then((r) => r.json())
+          safeFetchJson("/decisions"),
+          safeFetchJson("/performance")
         ]);
         cachedDecisions = Array.isArray(decisions) ? decisions : [];
-        cachedPerf = perf || {};
+        cachedPerf = perf && typeof perf === "object" ? perf : {};
         renderAll(cachedDecisions, cachedPerf);
       } catch (err) {
         console.error("[refresh] falhou:", err);

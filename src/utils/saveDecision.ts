@@ -4,6 +4,8 @@ import { dirname, resolve } from "node:path";
 const DATA_DIR = resolve(process.cwd(), "data");
 const DECISIONS_FILE = resolve(DATA_DIR, "decisions.json");
 const DELAY_CYCLES = 3;
+const TAKE_PROFIT_PCT = 1.5;
+const STOP_LOSS_PCT = 1.0;
 
 export type Resultado = "lucro" | "prejuizo" | "neutro";
 
@@ -100,6 +102,29 @@ function countSameAtivoAfter(decisoes: DecisionRecord[], ativo: string, fromIdx:
   return count;
 }
 
+interface ExitTrigger {
+  trigger: "tp" | "sl";
+  precoExit: number;
+  resultado: Resultado;
+}
+
+function checkExitTrigger(decisao: string, precoEntrada: number, precoCheck: number): ExitTrigger | null {
+  if (!Number.isFinite(precoEntrada) || !Number.isFinite(precoCheck) || precoEntrada <= 0) return null;
+
+  if (decisao === "compra") {
+    const tp = precoEntrada * (1 + TAKE_PROFIT_PCT / 100);
+    const sl = precoEntrada * (1 - STOP_LOSS_PCT / 100);
+    if (precoCheck >= tp) return { trigger: "tp", precoExit: tp, resultado: "lucro" };
+    if (precoCheck <= sl) return { trigger: "sl", precoExit: sl, resultado: "prejuizo" };
+  } else if (decisao === "venda") {
+    const tp = precoEntrada * (1 - TAKE_PROFIT_PCT / 100);
+    const sl = precoEntrada * (1 + STOP_LOSS_PCT / 100);
+    if (precoCheck <= tp) return { trigger: "tp", precoExit: tp, resultado: "lucro" };
+    if (precoCheck >= sl) return { trigger: "sl", precoExit: sl, resultado: "prejuizo" };
+  }
+  return null;
+}
+
 function avaliarPendentes(decisoes: DecisionRecord[], ativo: string, precoFuturo: number): { resolveuPrejuizo: boolean } {
   let resolveu = false;
   for (let i = 0; i < decisoes.length; i++) {
@@ -109,6 +134,31 @@ function avaliarPendentes(decisoes: DecisionRecord[], ativo: string, precoFuturo
     if (prev.decisao !== "compra" && prev.decisao !== "venda") continue;
     if (typeof prev.precoEntrada !== "number") continue;
 
+    // 1. checa preços intermediários (cada record subsequente do mesmo ativo) por TP/SL
+    let exit: ExitTrigger | null = null;
+    for (let j = i + 1; j < decisoes.length; j++) {
+      if (decisoes[j].ativo !== ativo) continue;
+      const p = decisoes[j].precoEntrada;
+      if (typeof p !== "number" || !Number.isFinite(p)) continue;
+      const t = checkExitTrigger(prev.decisao, prev.precoEntrada, p);
+      if (t) { exit = t; break; }
+    }
+
+    // 2. checa preço atual (precoFuturo) por TP/SL
+    if (!exit) {
+      const t = checkExitTrigger(prev.decisao, prev.precoEntrada, precoFuturo);
+      if (t) exit = t;
+    }
+
+    if (exit) {
+      prev.precoAtual = exit.precoExit;
+      prev.resultado = exit.resultado;
+      prev.avaliada = true;
+      if (exit.resultado === "prejuizo") resolveu = true;
+      continue;
+    }
+
+    // 3. fallback temporal: encerra por DELAY_CYCLES no preço atual
     const ciclosDecorridos = countSameAtivoAfter(decisoes, ativo, i) + 1;
     if (ciclosDecorridos >= DELAY_CYCLES) {
       prev.precoAtual = precoFuturo;

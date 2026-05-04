@@ -1,8 +1,9 @@
 import dotenv from "dotenv";
-import { runTradingCycle } from "./orchestrator/trading.orchestrator.js";
-import { saveDecision } from "./utils/saveDecision.js";
-
 dotenv.config({ override: true });
+
+import { runTradingCycle } from "./orchestrator/trading.orchestrator";
+import { saveDecision } from "./utils/saveDecision";
+import { startServer } from "./server/index";
 
 const CYCLE_INTERVAL_MS = 30_000;
 const DEFAULT_SYMBOLS = ["BTCUSDT", "ETHUSDT"];
@@ -89,6 +90,13 @@ async function main(): Promise<void> {
   process.on("unhandledRejection", (reason) => {
     logErro("unhandledRejection", reason);
   });
+
+  // Sobe o dashboard web no mesmo processo (Express escuta + bot continua o loop)
+  try {
+    startServer();
+  } catch (err) {
+    logErro("web-server", err);
+  }
 
   await loop(symbols);
   console.log("[Draxon Trader AI] Loop encerrado.");
