@@ -1,11 +1,12 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { safeNumber, safeRound, safeBalance, clampNonNegative } from "./safeMath.js";
 
 const DECISIONS_FILE = resolve(process.cwd(), "data", "decisions.json");
 const TAXA_OPERACAO_PCT = 0.1;
-const TAXA_ROUND_TRIP_PCT = TAXA_OPERACAO_PCT * 2;
-const SLIPPAGE_PCT = 0.05;
-const SLIP = SLIPPAGE_PCT / 100;
+const TAXA_TOTAL_PCT = TAXA_OPERACAO_PCT * 2;
+const SALDO_FLOOR = -100; // -100% = perda total simulada
+const SALDO_CEILING = 1_000_000;
 
 interface DecisionRecord {
   decisao?: unknown;
@@ -35,26 +36,20 @@ function readDecisions(): DecisionRecord[] {
   }
 }
 
-function round(value: number, decimals = 2): number {
-  const factor = 10 ** decimals;
-  return Math.round(value * factor) / factor;
-}
-
 function tradeReturnPct(decisao: string, precoEntrada: number, precoAtual: number): number {
-  if (precoEntrada === 0) return 0;
+  const pe = safeNumber(precoEntrada);
+  const pa = safeNumber(precoAtual);
+  if (pe === 0) return 0;
   let bruto = 0;
   if (decisao === "compra") {
-    const entrada = precoEntrada * (1 + SLIP);
-    const saida = precoAtual * (1 - SLIP);
-    bruto = ((saida - entrada) / entrada) * 100;
+    bruto = ((pa - pe) / pe) * 100;
   } else if (decisao === "venda") {
-    const entrada = precoEntrada * (1 - SLIP);
-    const saida = precoAtual * (1 + SLIP);
-    bruto = ((entrada - saida) / entrada) * 100;
+    bruto = ((pe - pa) / pe) * 100;
   } else {
     return 0;
   }
-  return bruto - TAXA_ROUND_TRIP_PCT;
+  const liquido = bruto - TAXA_TOTAL_PCT;
+  return Number.isFinite(liquido) ? liquido : 0;
 }
 
 export function computePerformance(): PerformanceMetrics {
@@ -79,17 +74,24 @@ export function computePerformance(): PerformanceMetrics {
     if (d.resultado === "lucro") wins += 1;
 
     const ret = tradeReturnPct(decisao, d.precoEntrada, d.precoAtual);
+    if (!Number.isFinite(ret)) continue;
     if (ret > 0) lucro += ret;
     else if (ret < 0) prejuizo += -ret;
   }
 
   if (totalTrades === 0) return empty;
 
+  // Sanitização final — sem NaN, sem Infinity, sem saldo absurdo
+  const lucroSafe = clampNonNegative(lucro);
+  const prejuizoSafe = clampNonNegative(prejuizo);
+  const saldoSafe = safeBalance(lucroSafe - prejuizoSafe, SALDO_FLOOR, SALDO_CEILING);
+  const wrSafe = totalTrades > 0 ? clampNonNegative((wins / totalTrades) * 100) : 0;
+
   return {
     totalTrades,
-    winRate: round((wins / totalTrades) * 100),
-    lucro: round(lucro),
-    prejuizo: round(prejuizo),
-    saldo: round(lucro - prejuizo)
+    winRate: safeRound(wrSafe),
+    lucro: safeRound(lucroSafe),
+    prejuizo: safeRound(prejuizoSafe),
+    saldo: safeRound(saldoSafe)
   };
 }

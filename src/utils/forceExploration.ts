@@ -2,8 +2,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const DECISIONS_FILE = resolve(process.cwd(), "data", "decisions.json");
-const FORCE_EVERY_N_CYCLES = 10;
-const RECENT_LOOKBACK = 5;
+const FORCE_EVERY_N_CYCLES = 6;
+const RECENT_LOOKBACK = 4;
 
 interface DecisionRecord {
   ativo?: unknown;

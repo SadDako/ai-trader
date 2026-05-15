@@ -4,338 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Draxon Trader AI — Dashboard</title>
-  <style>
-    * { box-sizing: border-box; }
-    :root {
-      --bg: #0a0d12;
-      --panel: #14181f;
-      --panel-2: #1a1f27;
-      --panel-3: #20262f;
-      --border: #2a313b;
-      --border-soft: #232931;
-      --text: #e6edf3;
-      --text-dim: #b3bac4;
-      --muted: #6e7681;
-      --green: #3fb950;
-      --green-soft: #1a5d34;
-      --green-glow: rgba(63, 185, 80, 0.25);
-      --red: #f85149;
-      --red-soft: #7a1818;
-      --red-glow: rgba(248, 81, 73, 0.25);
-      --yellow: #d29922;
-      --gray: #3a3a3a;
-      --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
-      --shadow-md: 0 4px 12px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.03);
-      --shadow-lg: 0 8px 28px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
-      --radius-sm: 6px;
-      --radius-md: 10px;
-      --radius-lg: 14px;
-      --space-1: 6px;
-      --space-2: 10px;
-      --space-3: 14px;
-      --space-4: 20px;
-      --space-5: 28px;
-      --transition: 0.25s cubic-bezier(.4,0,.2,1);
-    }
-    body {
-      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-      background: radial-gradient(ellipse at top, #14181f 0%, var(--bg) 50%);
-      color: var(--text);
-      margin: 0;
-      padding: var(--space-5);
-      max-width: 1320px;
-      margin-left: auto;
-      margin-right: auto;
-      font-feature-settings: "ss01", "cv01";
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-    body, button, table, input { font-variant-numeric: tabular-nums; }
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-    h1 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
-    .sub { color: var(--muted); font-size: 13px; margin-top: 4px; letter-spacing: 0.2px; }
-
-    .status-bar {
-      display: flex;
-      gap: var(--space-4);
-      align-items: center;
-      background: var(--panel);
-      border: 1px solid var(--border-soft);
-      border-radius: var(--radius-md);
-      padding: var(--space-2) var(--space-4);
-      font-size: 12px;
-      flex-wrap: wrap;
-      box-shadow: var(--shadow-sm);
-    }
-    .status-bar .item { display: flex; gap: 6px; align-items: center; }
-    .status-bar .item .k { color: var(--muted); }
-    .status-bar .item .v { color: var(--text); font-weight: 600; }
-    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: pulse 1.5s infinite; }
-    .dot.stale { background: var(--yellow); animation: none; }
-    .dot.offline { background: var(--red); animation: none; }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-
-    .hero {
-      background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
-      border: 1px solid var(--border-soft);
-      border-radius: var(--radius-lg);
-      padding: var(--space-4) var(--space-5);
-      margin: var(--space-3) 0;
-      display: grid;
-      grid-template-columns: auto 1fr auto;
-      gap: var(--space-5);
-      align-items: center;
-      box-shadow: var(--shadow-md);
-      transition: box-shadow var(--transition);
-      position: relative;
-      overflow: hidden;
-    }
-    .hero::before {
-      content: "";
-      position: absolute;
-      top: 0; left: 0; right: 0; height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
-    }
-    .hero .ativo { font-size: 30px; font-weight: 700; letter-spacing: 0.3px; }
-    .hero .preco { font-size: 13px; color: var(--muted); margin-top: 4px; letter-spacing: 0.2px; }
-    .hero .badge-big {
-      font-size: 18px;
-      font-weight: 700;
-      padding: var(--space-2) 24px;
-      border-radius: var(--radius-md);
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      transition: all var(--transition);
-      box-shadow: var(--shadow-sm);
-    }
-    .hero .conf { font-size: 12px; color: var(--muted); text-align: right; letter-spacing: 0.4px; text-transform: uppercase; }
-    .hero .conf strong { font-size: 28px; font-weight: 700; color: var(--text); display: block; line-height: 1.1; margin-bottom: 4px; transition: color var(--transition); }
-
-    .grid { display: grid; gap: 16px; }
-    .grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
-    .grid.cols-2 { grid-template-columns: 1fr 1fr; }
-    @media (max-width: 900px) {
-      .grid.cols-4 { grid-template-columns: repeat(2, 1fr); }
-      .grid.cols-2 { grid-template-columns: 1fr; }
-      .hero { grid-template-columns: 1fr; text-align: center; }
-      .hero .conf { text-align: center; }
-    }
-
-    .card {
-      background: var(--panel);
-      border: 1px solid var(--border-soft);
-      border-radius: var(--radius-md);
-      padding: var(--space-3) var(--space-4);
-      box-shadow: var(--shadow-sm);
-      transition: border-color var(--transition), box-shadow var(--transition);
-    }
-    .card:hover { border-color: var(--border); }
-    .card h3 {
-      font-size: 10px;
-      text-transform: uppercase;
-      color: var(--muted);
-      letter-spacing: 0.8px;
-      margin: 0 0 var(--space-2);
-      font-weight: 600;
-    }
-    .metric-value { font-size: 28px; font-weight: 700; line-height: 1; letter-spacing: -0.3px; transition: color var(--transition); }
-    .metric-meta { font-size: 12px; color: var(--muted); margin-top: var(--space-1); letter-spacing: 0.2px; }
-
-    .bar { height: 6px; background: var(--panel-3); border-radius: 3px; overflow: hidden; margin-top: var(--space-2); }
-    .bar > span { display: block; height: 100%; transition: width 0.6s cubic-bezier(.4,0,.2,1); border-radius: 3px; }
-    .bar-green > span { background: linear-gradient(90deg, var(--green-soft), var(--green)); }
-    .bar-red > span { background: linear-gradient(90deg, var(--red-soft), var(--red)); }
-    .bar-mixed { display: flex; height: 6px; border-radius: 3px; overflow: hidden; margin-top: var(--space-2); }
-    .bar-mixed .l { background: var(--green); height: 6px; transition: flex 0.6s cubic-bezier(.4,0,.2,1); }
-    .bar-mixed .p { background: var(--red); height: 6px; transition: flex 0.6s cubic-bezier(.4,0,.2,1); }
-
-    .pos { color: var(--green); }
-    .neg { color: var(--red); }
-    .mid { color: var(--yellow); }
-
-    .pill { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; letter-spacing: 0.4px; }
-    .b-compra, .b-lucro { background: var(--green-soft); color: #fff; box-shadow: 0 0 0 1px rgba(63,185,80,0.2); }
-    .b-venda, .b-prejuizo { background: var(--red-soft); color: #fff; box-shadow: 0 0 0 1px rgba(248,81,73,0.2); }
-    .b-esperar, .b-neutro { background: var(--gray); color: #d0d0d0; }
-    .badge-big.b-compra { box-shadow: 0 0 24px var(--green-glow), 0 0 0 1px rgba(63,185,80,0.3); }
-    .badge-big.b-venda { box-shadow: 0 0 24px var(--red-glow), 0 0 0 1px rgba(248,81,73,0.3); }
-
-    .rsi-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12px; color: var(--muted); justify-content: flex-end; }
-    .rsi-row strong { color: var(--text); font-size: 14px; }
-    .rsi-bar { width: 120px; height: 6px; background: linear-gradient(to right, var(--green) 0 30%, var(--gray) 30% 70%, var(--red) 70% 100%); border-radius: 3px; position: relative; }
-    .rsi-bar .marker { position: absolute; top: -3px; width: 2px; height: 12px; background: #fff; border-radius: 1px; transform: translateX(-1px); }
-    .rsi-tag { padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; letter-spacing: 0.4px; }
-    .rsi-sobrevendido { background: var(--green-soft); color: #fff; }
-    .rsi-sobrecomprado { background: var(--red-soft); color: #fff; }
-    .rsi-neutro { background: var(--gray); color: #ccc; }
-
-    .chart-card { padding: 18px 20px; }
-    .chart-tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
-    .chart-tabs button {
-      background: var(--panel-2);
-      color: var(--muted);
-      border: 1px solid var(--border);
-      padding: 4px 12px;
-      border-radius: 14px;
-      cursor: pointer;
-      font-size: 12px;
-      font-family: inherit;
-    }
-    .chart-tabs button.active {
-      background: var(--green-soft);
-      color: #fff;
-      border-color: var(--green-soft);
-    }
-    svg.chart { width: 100%; height: 240px; display: block; }
-    svg.chart-rsi { width: 100%; height: 100px; display: block; margin-top: 6px; }
-    .rsi-line { fill: none; stroke: #58a6ff; stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; animation: drawIn 0.5s cubic-bezier(.4,0,.2,1); }
-    .rsi-grid-edge { stroke: var(--border); stroke-width: 1; stroke-dasharray: 3 3; }
-    .rsi-grid-mid { stroke: rgba(125,133,144,0.25); stroke-width: 1; stroke-dasharray: 1 4; }
-    .rsi-zone-over { fill: rgba(248,81,73,0.08); }
-    .rsi-zone-under { fill: rgba(63,185,80,0.08); }
-    .rsi-label { fill: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .axis-label { fill: var(--muted); font-size: 10px; }
-    .grid-line { stroke: var(--border); stroke-width: 1; stroke-dasharray: 2 3; }
-    @keyframes drawIn { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
-    .price-line { fill: none; stroke: #58a6ff; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; animation: drawIn 0.5s cubic-bezier(.4,0,.2,1); }
-    .sma9-line { fill: none; stroke: #d29922; stroke-width: 1.4; stroke-linejoin: round; stroke-linecap: round; opacity: 0.9; animation: drawIn 0.6s cubic-bezier(.4,0,.2,1); }
-    .sma21-line { fill: none; stroke: #a371f7; stroke-width: 1.4; stroke-linejoin: round; stroke-linecap: round; opacity: 0.9; animation: drawIn 0.7s cubic-bezier(.4,0,.2,1); }
-    .legend-item { display: inline-flex; align-items: center; gap: 6px; margin-right: 14px; font-size: 11px; color: var(--muted); }
-    .legend-swatch { width: 16px; height: 2px; border-radius: 1px; display: inline-block; }
-    .marker-shape { stroke-linejoin: round; }
-    .marker-compra { fill: var(--green); }
-    .marker-venda { fill: var(--red); }
-    .r-lucro { stroke: var(--green); stroke-width: 2; }
-    .r-prejuizo { stroke: var(--red); stroke-width: 2; }
-    .r-neutro, .r-pendente { stroke: rgba(255,255,255,0.7); stroke-width: 1.2; }
-
-    .reason-card .why {
-      background: var(--panel-2);
-      border-left: 3px solid var(--yellow);
-      padding: 10px 14px;
-      border-radius: 4px;
-      font-size: 13px;
-      line-height: 1.5;
-      color: var(--text);
-    }
-    .reason-card .why.ok { border-left-color: var(--green); }
-    .reason-card .why.bad { border-left-color: var(--red); }
-    .reason-card .meta-row {
-      display: flex;
-      gap: 18px;
-      flex-wrap: wrap;
-      margin-top: 12px;
-      font-size: 12px;
-      color: var(--muted);
-    }
-    .reason-card .meta-row strong { color: var(--text); }
-
-    .indicators {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 10px;
-      margin-top: 14px;
-    }
-    @media (max-width: 720px) {
-      .indicators { grid-template-columns: repeat(2, 1fr); }
-    }
-    .indicator {
-      background: var(--panel-2);
-      border-radius: 6px;
-      padding: 10px 12px;
-      border-left: 3px solid var(--gray);
-    }
-    .indicator.up { border-left-color: var(--green); }
-    .indicator.down { border-left-color: var(--red); }
-    .indicator.warn { border-left-color: var(--yellow); }
-    .indicator .label {
-      color: var(--muted);
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .indicator .value {
-      font-size: 18px;
-      font-weight: 700;
-      margin-top: 3px;
-      line-height: 1.1;
-    }
-    .indicator .sub {
-      font-size: 11px;
-      color: var(--muted);
-      margin-top: 2px;
-    }
-    .indicator-bar {
-      height: 5px;
-      background: rgba(255,255,255,0.05);
-      border-radius: 3px;
-      margin-top: 6px;
-      overflow: hidden;
-    }
-    .indicator-bar > span {
-      display: block;
-      height: 100%;
-      transition: width 0.4s ease;
-    }
-    .ibar-green > span { background: var(--green); }
-    .ibar-red > span { background: var(--red); }
-    .ibar-yellow > span { background: var(--yellow); }
-
-    .score-hero {
-      margin-top: 10px;
-      width: 160px;
-      height: 8px;
-      background: linear-gradient(to right, var(--red) 0 40%, var(--yellow) 40% 65%, var(--green) 65% 100%);
-      border-radius: 4px;
-      position: relative;
-      margin-left: auto;
-    }
-    .score-hero .marker {
-      position: absolute;
-      top: -3px;
-      width: 3px;
-      height: 14px;
-      background: #fff;
-      border-radius: 1px;
-      transform: translateX(-1.5px);
-    }
-
-    .hero.compra { box-shadow: inset 4px 0 0 var(--green), var(--shadow-md); }
-    .hero.venda { box-shadow: inset 4px 0 0 var(--red), var(--shadow-md); }
-    .hero.esperar { box-shadow: inset 4px 0 0 var(--gray), var(--shadow-md); }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: var(--panel);
-      border: 1px solid var(--border-soft);
-      border-radius: var(--radius-md);
-      overflow: hidden;
-      font-size: 13px;
-      box-shadow: var(--shadow-sm);
-    }
-    th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border-soft); }
-    th { background: var(--panel-2); color: var(--muted); text-transform: uppercase; font-size: 10px; letter-spacing: 0.8px; font-weight: 600; }
-    tr:last-child td { border-bottom: none; }
-    tr.highlight-compra td { background: rgba(63, 185, 80, 0.05); }
-    tr.highlight-venda td { background: rgba(248, 81, 73, 0.05); }
-    tr:hover td { background: rgba(255,255,255,0.02); }
-
-    .section-title { font-size: 11px; text-transform: uppercase; color: var(--muted); letter-spacing: 1px; margin: var(--space-5) 0 var(--space-2); font-weight: 600; }
-  </style>
+  <link rel="preconnect" href="https://api.binance.com" />
+  <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
   <header>
     <div>
       <h1>Draxon Trader AI</h1>
-      <div class="sub">Dashboard ao vivo — multi-ativo</div>
+      <div class="sub">Dashboard ao vivo — multi-ativo, dados de mercado da Binance</div>
     </div>
     <div class="status-bar">
       <div class="item"><div class="dot" id="botDot"></div><span class="v" id="botStatus">conectando…</span></div>
@@ -347,11 +23,15 @@
   </header>
 
   <div class="hero" id="hero">
-    <div>
+    <div class="hero-left">
       <div class="ativo" id="heroAtivo">—</div>
-      <div class="preco" id="heroPreco">aguardando dados…</div>
+      <div class="price-row">
+        <div class="price dim" id="heroPrice">—</div>
+        <div class="price-delta" id="heroPriceDelta"></div>
+      </div>
+      <div class="updated" id="heroUpdated">aguardando dados…</div>
     </div>
-    <div style="text-align:center"><span class="badge-big b-esperar" id="heroBadge">ESPERAR</span></div>
+    <div><span class="badge-big b-esperar" id="heroBadge">ESPERAR</span></div>
     <div class="conf">
       <strong id="heroConf">—</strong>
       score
@@ -382,7 +62,7 @@
         <span class="metric-meta" style="font-size:12px"> / </span>
         <span class="neg" id="mPrejuizo">—</span>
       </div>
-      <div class="bar-mixed" style="margin-top:8px; border-radius:3px; overflow:hidden">
+      <div class="bar-mixed">
         <div class="l" id="barLucro" style="flex:0"></div>
         <div class="p" id="barPrejuizo" style="flex:0"></div>
       </div>
@@ -391,6 +71,202 @@
       <h3>Saldo simulado</h3>
       <div class="metric-value" id="mSaldo">—</div>
       <div class="metric-meta" id="mSaldoMeta">resultado acumulado</div>
+      <button id="btnRepair" class="btn-repair" type="button" title="Reprocessa o histórico descartando trades inválidos e recalcula tudo do zero (saldo $1000)">Recalcular métricas</button>
+      <div class="repair-status" id="repairStatus"></div>
+    </div>
+  </div>
+
+  <div class="card market-quality-card">
+    <div class="setup-edge-head">
+      <h3>Qualidade do Mercado</h3>
+      <span class="metric-meta" id="marketQualityMeta">aguardando qualidade</span>
+    </div>
+    <div class="market-regime-body">
+      <div>
+        <div class="setup-edge-name" id="marketQualityScore">50</div>
+        <div class="metric-meta" id="marketQualityLabel">NEUTRA</div>
+      </div>
+      <div class="setup-edge-stats" id="marketQualityReason">
+        <span>fallback neutro</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card market-regime-card">
+    <div class="setup-edge-head">
+      <h3>Regime de Mercado</h3>
+      <span class="metric-meta" id="marketRegimeMeta">aguardando regime</span>
+    </div>
+    <div class="market-regime-body">
+      <div>
+        <div class="setup-edge-name" id="marketRegimeName">NEUTRAL</div>
+        <div class="metric-meta" id="marketRegimeConfidence">confiança —</div>
+      </div>
+      <div class="setup-edge-stats" id="marketRegimeSetups">
+        <span>sem leitura confiável</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card setup-edge-card">
+    <div class="setup-edge-head">
+      <h3>Setups mais lucrativos</h3>
+      <span class="metric-meta" id="setupEdgeMeta">aguardando edge</span>
+    </div>
+    <div class="setup-edge-list" id="setupEdgeList">
+      <div class="metric-meta">sem dados suficientes</div>
+    </div>
+  </div>
+
+  <div class="section-title">Execução</div>
+  <div class="card execution-card" id="executionCard">
+    <div class="setup-edge-head">
+      <h3>Posição ao vivo</h3>
+      <span class="metric-meta" id="execStatus">sem posição aberta</span>
+    </div>
+    <div class="execution-grid">
+      <div class="exec-stat"><span>lado</span><strong id="execSide">—</strong></div>
+      <div class="exec-stat"><span>entrada</span><strong id="execEntry">—</strong></div>
+      <div class="exec-stat"><span>tamanho</span><strong id="execSize">—</strong></div>
+      <div class="exec-stat"><span>pnl flutuante</span><strong class="exec-value" id="execPnl">—</strong></div>
+      <div class="exec-stat"><span>RR atual</span><strong id="execRR">—</strong></div>
+      <div class="exec-stat"><span>stop</span><strong id="execStop">—</strong></div>
+      <div class="exec-stat"><span>alvo</span><strong id="execTarget">—</strong></div>
+      <div class="exec-stat"><span>trailing</span><strong id="execTrailing">—</strong></div>
+      <div class="exec-stat"><span>tempo aberto</span><strong id="execOpenTime">—</strong></div>
+    </div>
+    <div class="execution-meta">
+      <span>slip médio <strong id="execAvgSlip">—</strong></span>
+      <span>delay médio <strong id="execAvgDelay">—</strong></span>
+      <span id="execMaeMfe">MAE — / MFE —</span>
+    </div>
+    <div class="trade-timeline" id="execTimeline">
+      <div class="metric-meta">sem eventos de execução</div>
+    </div>
+  </div>
+
+  <div class="section-title">Exchange Conditions</div>
+  <div class="card exchange-card" id="exchangeCard">
+    <div class="exchange-grid">
+      <div class="exchange-stat"><span>spread atual</span><strong id="exSpread">-</strong></div>
+      <div class="exchange-stat"><span>slippage medio</span><strong id="exAvgSlip">-</strong></div>
+      <div class="exchange-stat"><span>latency</span><strong id="exLatency">-</strong></div>
+      <div class="exchange-stat"><span>liquidity</span><strong id="exLiquidity">-</strong></div>
+      <div class="exchange-stat"><span>execution quality</span><strong id="exQuality">-</strong></div>
+      <div class="exchange-stat"><span>market stress</span><strong id="exStress">-</strong></div>
+    </div>
+    <div class="execution-meta">
+      <span>mode <strong id="exMode">-</strong></span>
+      <span>impacto <strong id="exImpact">-</strong></span>
+      <span>desvio fill <strong id="exFillDeviation">-</strong></span>
+      <span>opportunity cost <strong id="exOpportunityCost">-</strong></span>
+    </div>
+  </div>
+
+  <div class="section-title">Portfolio ao vivo</div>
+  <div class="card live-portfolio-card" id="livePortfolioCard">
+    <div class="live-portfolio-grid">
+      <div class="portfolio-stat"><span>saldo atual</span><strong id="pfSaldoAtual">—</strong></div>
+      <div class="portfolio-stat"><span>saldo inicial</span><strong id="pfSaldoInicial">—</strong></div>
+      <div class="portfolio-stat"><span>capital livre</span><strong id="pfCapitalLivre">—</strong></div>
+      <div class="portfolio-stat"><span>pnl realizado</span><strong id="pfPnlRealizado">—</strong></div>
+      <div class="portfolio-stat"><span>pnl flutuante</span><strong id="pfPnlFlutuante">—</strong></div>
+      <div class="portfolio-stat"><span>capital alocado</span><strong id="pfCapitalUso">—</strong></div>
+      <div class="portfolio-stat"><span>trades abertos</span><strong id="pfTradesAbertos">—</strong></div>
+      <div class="portfolio-stat"><span>drawdown atual</span><strong id="pfDrawdown">—</strong></div>
+      <div class="portfolio-stat"><span>exposure</span><strong id="pfExposure">—</strong></div>
+      <div class="portfolio-stat"><span>risco agregado</span><strong id="pfRiscoAtual">—</strong></div>
+      <div class="portfolio-stat"><span>retorno diário</span><strong id="pfRetornoDiario">—</strong></div>
+      <div class="portfolio-stat"><span>retorno semanal</span><strong id="pfRetornoSemanal">—</strong></div>
+    </div>
+  </div>
+
+  <div class="section-title">Posições abertas</div>
+  <div class="card open-positions-card">
+    <table class="open-positions-table">
+      <thead>
+        <tr>
+          <th>Ativo</th><th>Lado</th><th>Entrada</th><th>Preço atual</th><th>PNL %</th><th>PNL $</th><th>Size</th><th>Stop</th><th>Alvo</th><th>Duração</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="openPositionsBody">
+        <tr><td colspan="11">sem posições abertas</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section-title">Saúde do Sistema</div>
+  <div class="card system-health-card" id="systemHealthCard">
+    <div class="system-health-grid">
+      <div class="system-stat"><span>risk mode</span><strong id="sysRiskMode">—</strong></div>
+      <div class="system-stat"><span>setup dominante</span><strong id="sysDominantSetup">—</strong></div>
+      <div class="system-stat"><span>stress atual</span><strong id="sysStress">—</strong></div>
+      <div class="system-stat"><span>confiança global</span><strong id="sysGlobalConfidence">—</strong></div>
+      <div class="system-stat"><span>risco adaptativo</span><strong id="sysAdaptiveRisk">—</strong></div>
+      <div class="system-stat"><span>saúde ML</span><strong id="sysMlHealth">—</strong></div>
+      <div class="system-stat"><span>edge atual</span><strong id="sysCurrentEdge">—</strong></div>
+      <div class="system-stat"><span>execution engine</span><strong id="sysExecutionStatus">—</strong></div>
+      <div class="system-stat"><span>open positions</span><strong id="sysOpenPositions">—</strong></div>
+      <div class="system-stat"><span>trades hoje</span><strong id="sysTradesToday">—</strong></div>
+      <div class="system-stat"><span>latency</span><strong id="sysLatency">—</strong></div>
+      <div class="system-stat"><span>regime engine</span><strong id="sysRegimeStatus">—</strong></div>
+    </div>
+    <div class="system-explainer" id="sysExplainer">aguardando leitura adaptativa</div>
+  </div>
+
+  <div class="section-title">ML Signal Engine</div>
+  <div class="card ml-card" id="mlCard">
+    <div class="ml-row">
+      <div class="ml-stat">
+        <div class="label">Modelo ativo</div>
+        <div class="value" id="mlVersion">—</div>
+        <div class="sub" id="mlAlgo">aguardando treino…</div>
+      </div>
+      <div class="ml-stat">
+        <div class="label">Accuracy (test set)</div>
+        <div class="value" id="mlAccuracy">—</div>
+        <div class="sub" id="mlSamples">—</div>
+      </div>
+      <div class="ml-stat">
+        <div class="label">Probabilidade atual</div>
+        <div class="value" id="mlProb">—</div>
+        <div class="sub" id="mlSource">aguardando ciclo…</div>
+      </div>
+      <div class="ml-stat ml-actions">
+        <div class="label">Confiança</div>
+        <div class="value" id="mlConf">—</div>
+        <button id="btnRetrain" class="btn-dataset" type="button" title="Força re-treino imediato">Re-treinar</button>
+        <div class="sub" id="mlRetrainStatus"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Dataset (pesquisa quantitativa)</div>
+  <div class="card dataset-card" id="datasetCard">
+    <div class="dataset-row">
+      <div class="dataset-stat">
+        <div class="label">Total samples</div>
+        <div class="value" id="dsTotal">—</div>
+        <div class="sub" id="dsAvaliadas">—</div>
+      </div>
+      <div class="dataset-stat">
+        <div class="label">Setups coletados</div>
+        <div class="value" id="dsSetups">—</div>
+        <div class="sub" id="dsSetupsTop">—</div>
+      </div>
+      <div class="dataset-stat">
+        <div class="label">Ativos monitorados</div>
+        <div class="value" id="dsAtivos">—</div>
+        <div class="sub" id="dsAtivosList">—</div>
+      </div>
+      <div class="dataset-stat dataset-actions">
+        <div class="label">Exportar</div>
+        <div class="dataset-buttons">
+          <a class="btn-dataset" id="dsCsv" href="/dataset/export?format=csv" download>CSV</a>
+          <a class="btn-dataset" id="dsJsonl" href="/dataset/export?format=jsonl" download>JSONL</a>
+        </div>
+        <div class="sub" id="dsGeradoEm">—</div>
+      </div>
     </div>
   </div>
 
@@ -426,21 +302,20 @@
     </div>
   </div>
 
-  <div class="section-title">Histórico de preço</div>
+  <div class="section-title">Mercado em tempo real (Binance · 1m · últimas 100 candles)</div>
   <div class="card chart-card">
     <div class="chart-tabs" id="chartTabs"></div>
-    <svg class="chart" id="chart" viewBox="0 0 800 240" preserveAspectRatio="none"></svg>
-    <svg class="chart-rsi" id="chartRsi" viewBox="0 0 800 100" preserveAspectRatio="none"></svg>
+    <div class="chart-panels" id="chartPanels"></div>
     <div class="metric-meta" style="margin-top:8px">
-      <span class="legend-item"><span class="legend-swatch" style="background:#58a6ff"></span> preço</span>
-      <span class="legend-item"><span class="legend-swatch" style="background:#d29922"></span> SMA9</span>
-      <span class="legend-item"><span class="legend-swatch" style="background:#a371f7"></span> SMA21</span>
-      <span class="legend-item"><span class="pill b-compra">▲</span> compra</span>
-      <span class="legend-item"><span class="pill b-venda">▼</span> venda</span>
+      <span class="legend-item"><span class="legend-swatch" style="background:#3fb950;height:8px"></span> candle alta</span>
+      <span class="legend-item"><span class="legend-swatch" style="background:#f85149;height:8px"></span> candle baixa</span>
+      <span class="legend-item"><span class="legend-swatch" style="background:#8b949e"></span> volume</span>
+      <span class="legend-item"><span class="legend-dot buy">C</span> compra</span>
+      <span class="legend-item"><span class="legend-dot sell">V</span> venda</span>
     </div>
   </div>
 
-  <div class="section-title">Histórico recente</div>
+  <div class="section-title">Histórico recente de decisões</div>
   <table>
     <thead>
       <tr>
@@ -450,424 +325,7 @@
     <tbody id="hist"></tbody>
   </table>
 
-  <script>
-    const STALE_MS = 90_000;
-    const OFFLINE_MS = 240_000;
-    let ativoSelecionado = null;
-    let cachedDecisions = [];
-    let cachedPerf = null;
-    let lastChartSignature = null;
-    let lastRsiSignature = null;
-
-    function fmtNum(n, d = 2) {
-      if (n === null || n === undefined || Number.isNaN(Number(n))) return "—";
-      return Number(n).toLocaleString("pt-BR", { maximumFractionDigits: d });
-    }
-    function pill(v) { return '<span class="pill b-' + v + '">' + v + "</span>"; }
-    function clsSaldo(v) { return v > 0 ? "pos" : v < 0 ? "neg" : "mid"; }
-    function fmtTs(iso) {
-      try { return new Date(iso).toLocaleString("pt-BR"); } catch { return iso; }
-    }
-    function ago(iso) {
-      const ms = Date.now() - new Date(iso).getTime();
-      if (ms < 60_000) return Math.round(ms / 1000) + "s atrás";
-      if (ms < 3_600_000) return Math.round(ms / 60_000) + "min atrás";
-      return Math.round(ms / 3_600_000) + "h atrás";
-    }
-
-    function updateBotStatus(lastTs) {
-      const dot = document.getElementById("botDot");
-      const txt = document.getElementById("botStatus");
-      if (!lastTs) {
-        dot.className = "dot offline";
-        txt.textContent = "offline";
-        return;
-      }
-      const age = Date.now() - new Date(lastTs).getTime();
-      if (age < STALE_MS) {
-        dot.className = "dot";
-        txt.textContent = "online";
-      } else if (age < OFFLINE_MS) {
-        dot.className = "dot stale";
-        txt.textContent = "stale (" + ago(lastTs) + ")";
-      } else {
-        dot.className = "dot offline";
-        txt.textContent = "offline (" + ago(lastTs) + ")";
-      }
-    }
-
-    function ativosUnicos(decisions) {
-      return [...new Set(decisions.map((d) => d.ativo).filter(Boolean))];
-    }
-
-    function getLatestPerAtivo(decisions) {
-      const map = Object.create(null);
-      for (const d of decisions) {
-        if (d && d.ativo) map[d.ativo] = d;
-      }
-      return map;
-    }
-
-    function decisionsDoAtivo(decisions, ativo) {
-      return decisions.filter((d) => d && d.ativo === ativo);
-    }
-
-    function renderTabs(ativos) {
-      const wrap = document.getElementById("chartTabs");
-      if (!ativoSelecionado && ativos.length) ativoSelecionado = ativos[0];
-      wrap.innerHTML = ativos.map((a) =>
-        '<button class="' + (a === ativoSelecionado ? "active" : "") + '" data-ativo="' + a + '">' + a + "</button>"
-      ).join("");
-      wrap.querySelectorAll("button").forEach((btn) => {
-        btn.onclick = () => {
-          if (btn.dataset.ativo === ativoSelecionado) return;
-          ativoSelecionado = btn.dataset.ativo;
-          lastChartSignature = null;
-          lastRsiSignature = null;
-          if (cachedDecisions.length > 0 && cachedPerf) {
-            renderAll(cachedDecisions, cachedPerf);
-          }
-        };
-      });
-    }
-
-    function rsiSeries(values, period) {
-      period = period || 14;
-      const result = new Array(values.length).fill(null);
-      if (values.length < period + 1) return result;
-      let gainSum = 0;
-      let lossSum = 0;
-      for (let i = 1; i <= period; i++) {
-        const diff = values[i] - values[i - 1];
-        if (diff >= 0) gainSum += diff;
-        else lossSum += -diff;
-      }
-      let avgGain = gainSum / period;
-      let avgLoss = lossSum / period;
-      const calc = (g, l) => l === 0 ? (g === 0 ? 50 : 100) : 100 - 100 / (1 + g / l);
-      result[period] = calc(avgGain, avgLoss);
-      for (let i = period + 1; i < values.length; i++) {
-        const diff = values[i] - values[i - 1];
-        const gain = diff > 0 ? diff : 0;
-        const loss = diff < 0 ? -diff : 0;
-        avgGain = (avgGain * (period - 1) + gain) / period;
-        avgLoss = (avgLoss * (period - 1) + loss) / period;
-        result[i] = calc(avgGain, avgLoss);
-      }
-      return result;
-    }
-
-    function renderRsiChart(closes, signature) {
-      if (signature && signature === lastRsiSignature) return;
-      lastRsiSignature = signature;
-      const svg = document.getElementById("chartRsi");
-      svg.innerHTML = "";
-      if (!closes || closes.length < 15) {
-        svg.innerHTML = '<text x="400" y="50" text-anchor="middle" class="axis-label">RSI: dados insuficientes</text>';
-        return;
-      }
-
-      const W = 800;
-      const H = 100;
-      const padL = 50;
-      const padR = 10;
-      const padT = 8;
-      const padB = 16;
-      const innerW = W - padL - padR;
-      const innerH = H - padT - padB;
-      const x = (i) => padL + (i / (closes.length - 1)) * innerW;
-      const y = (v) => padT + innerH - (v / 100) * innerH;
-
-      let content = "";
-
-      // zonas de sobrecompra/sobrevenda
-      content += '<rect class="rsi-zone-over" x="' + padL + '" y="' + y(100) + '" width="' + innerW + '" height="' + (y(70) - y(100)) + '"/>';
-      content += '<rect class="rsi-zone-under" x="' + padL + '" y="' + y(30) + '" width="' + innerW + '" height="' + (y(0) - y(30)) + '"/>';
-
-      // linhas de referência 30/50/70
-      [30, 50, 70].forEach((v) => {
-        const cls = v === 50 ? "rsi-grid-mid" : "rsi-grid-edge";
-        content += '<line class="' + cls + '" x1="' + padL + '" x2="' + (W - padR) + '" y1="' + y(v) + '" y2="' + y(v) + '"/>';
-        content += '<text class="axis-label" x="' + (padL - 6) + '" y="' + (y(v) + 3) + '" text-anchor="end">' + v + "</text>";
-      });
-
-      // label "RSI 14"
-      content += '<text class="rsi-label" x="' + padL + '" y="' + (padT + 10) + '">RSI(14)</text>';
-
-      // linha do RSI
-      const arr = rsiSeries(closes, 14);
-      const pts = arr
-        .map((v, i) => v === null ? null : x(i) + "," + y(v))
-        .filter((p) => p !== null)
-        .join(" ");
-      if (pts) content += '<polyline class="rsi-line" points="' + pts + '"/>';
-
-      svg.innerHTML = content;
-    }
-
-    function renderChart(decisions) {
-      if (!ativoSelecionado) {
-        const svg = document.getElementById("chart");
-        svg.innerHTML = '<text x="400" y="120" text-anchor="middle" class="axis-label">selecione um ativo</text>';
-        return;
-      }
-      const data = decisionsDoAtivo(decisions, ativoSelecionado)
-        .filter((d) => typeof d.precoEntrada === "number" && Number.isFinite(d.precoEntrada))
-        .slice(-60);
-      const sig = ativoSelecionado + ":" + data.length + ":" + (data.length ? data[data.length - 1].timestamp : "");
-      if (sig === lastChartSignature) return;
-      lastChartSignature = sig;
-
-      const svg = document.getElementById("chart");
-      svg.innerHTML = "";
-      if (data.length < 2) {
-        svg.innerHTML = '<text x="400" y="120" text-anchor="middle" class="axis-label">sem dados suficientes</text>';
-        document.getElementById("chartRsi").innerHTML = "";
-        return;
-      }
-      const W = 800, H = 240, padL = 50, padR = 10, padT = 20, padB = 24;
-      const innerW = W - padL - padR, innerH = H - padT - padB;
-      const precos = data.map((d) => d.precoEntrada);
-      const rawMin = Math.min(...precos);
-      const rawMax = Math.max(...precos);
-      const rawRange = rawMax - rawMin;
-      const padPct = 0.08;
-      const padAmount = rawRange > 0 ? rawRange * padPct : Math.max(1, Math.abs(rawMax) * 0.001);
-      const minP = rawMin - padAmount;
-      const maxP = rawMax + padAmount;
-      const range = maxP - minP || 1;
-      const x = (i) => padL + (i / (data.length - 1)) * innerW;
-      const y = (p) => padT + innerH - ((p - minP) / range) * innerH;
-
-      let svgContent = "";
-      // grid lines
-      for (let g = 0; g <= 4; g++) {
-        const yv = padT + (g / 4) * innerH;
-        const v = maxP - (g / 4) * range;
-        svgContent += '<line class="grid-line" x1="' + padL + '" x2="' + (W - padR) + '" y1="' + yv + '" y2="' + yv + '"/>';
-        svgContent += '<text class="axis-label" x="' + (padL - 6) + '" y="' + (yv + 3) + '" text-anchor="end">' + fmtNum(v) + "</text>";
-      }
-      // SMAs (calculadas no frontend a partir dos preços visíveis)
-      const sma = (values, period) => {
-        const out = [];
-        for (let i = 0; i < values.length; i++) {
-          if (i < period - 1) { out.push(null); continue; }
-          let s = 0;
-          for (let j = i - period + 1; j <= i; j++) s += values[j];
-          out.push(s / period);
-        }
-        return out;
-      };
-      const smaToPoints = (arr) => arr
-        .map((v, i) => v === null ? null : x(i) + "," + y(v))
-        .filter((p) => p !== null)
-        .join(" ");
-
-      const sma9pts = smaToPoints(sma(precos, 9));
-      const sma21pts = smaToPoints(sma(precos, 21));
-
-      // line
-      const points = data.map((d, i) => x(i) + "," + y(d.precoEntrada)).join(" ");
-      svgContent += '<polyline class="price-line" points="' + points + '"/>';
-      if (sma9pts) svgContent += '<polyline class="sma9-line" points="' + sma9pts + '"/>';
-      if (sma21pts) svgContent += '<polyline class="sma21-line" points="' + sma21pts + '"/>';
-
-      // RSI sub-chart (compartilha mesma signature pra evitar re-render)
-      renderRsiChart(precos, sig);
-      // markers (triângulo pra cima = compra, pra baixo = venda; contorno reflete resultado)
-      const triPath = (cx, cy, dir) => {
-        const s = 5;
-        return dir === "up"
-          ? "M" + cx + "," + (cy - s) + " L" + (cx - s) + "," + (cy + s) + " L" + (cx + s) + "," + (cy + s) + " Z"
-          : "M" + cx + "," + (cy + s) + " L" + (cx - s) + "," + (cy - s) + " L" + (cx + s) + "," + (cy - s) + " Z";
-      };
-      data.forEach((d, i) => {
-        if (d.decisao !== "compra" && d.decisao !== "venda") return;
-        const cx = x(i);
-        const cy = y(d.precoEntrada);
-        const dir = d.decisao === "compra" ? "up" : "down";
-        const dirCls = "marker-" + d.decisao;
-        const resKey = d.resultado === "lucro" || d.resultado === "prejuizo" || d.resultado === "neutro"
-          ? d.resultado
-          : "pendente";
-        const resCls = "r-" + resKey;
-        const tooltip = d.decisao.toUpperCase() + " @ " + fmtNum(d.precoEntrada) + " — " + fmtTs(d.timestamp) + " — " + resKey;
-        svgContent += '<path class="marker-shape ' + dirCls + " " + resCls + '" d="' + triPath(cx, cy, dir) + '"><title>' + tooltip + "</title></path>";
-      });
-      // x-axis labels (first/last) — defensivo contra timestamp inválido
-      const xLabel = (ts) => {
-        const formatted = fmtTs(ts);
-        const parts = formatted.split(" ");
-        return parts[1] || parts[0] || "—";
-      };
-      svgContent += '<text class="axis-label" x="' + padL + '" y="' + (H - 8) + '">' + xLabel(data[0].timestamp) + "</text>";
-      svgContent += '<text class="axis-label" x="' + (W - padR) + '" y="' + (H - 8) + '" text-anchor="end">' + xLabel(data[data.length - 1].timestamp) + "</text>";
-      svg.innerHTML = svgContent;
-    }
-
-    function rsiClassify(v) {
-      if (typeof v !== "number" || Number.isNaN(v)) return { tag: "—", cls: "rsi-neutro" };
-      if (v > 70) return { tag: "sobrecomprado", cls: "rsi-sobrecomprado" };
-      if (v < 30) return { tag: "sobrevendido", cls: "rsi-sobrevendido" };
-      return { tag: "neutro", cls: "rsi-neutro" };
-    }
-
-    function renderIndicators(last) {
-      // Tendência
-      const tend = last.tendencia || (last.analise && last.analise.tendencia) || "—";
-      const intens = typeof last.intensidade === "number" ? last.intensidade : 0;
-      const tendEl = document.getElementById("indTend");
-      tendEl.className = "indicator " + (tend === "alta" ? "up" : tend === "baixa" ? "down" : "warn");
-      document.getElementById("indTendVal").textContent = tend;
-      document.getElementById("indTendSub").textContent = "intensidade " + fmtNum(intens, 2) + "%";
-
-      // RSI
-      const rsiVal = typeof last.rsi === "number" ? last.rsi : 50;
-      const rsiInfo = rsiClassify(rsiVal);
-      const rsiEl = document.getElementById("indRsi");
-      rsiEl.className = "indicator " + (rsiVal < 30 ? "up" : rsiVal > 70 ? "down" : "warn");
-      document.getElementById("indRsiVal").textContent = fmtNum(rsiVal, 1);
-      document.getElementById("indRsiSub").textContent = rsiInfo.tag;
-      document.getElementById("indRsiBar").style.width = Math.max(0, Math.min(100, rsiVal)) + "%";
-
-      // Momentum
-      const mom = typeof last.momentum === "number" ? last.momentum : 0;
-      const momEl = document.getElementById("indMom");
-      momEl.className = "indicator " + (mom > 0.05 ? "up" : mom < -0.05 ? "down" : "warn");
-      document.getElementById("indMomVal").textContent = (mom > 0 ? "+" : "") + fmtNum(mom, 3) + "%/c";
-      document.getElementById("indMomSub").textContent = mom > 0.05 ? "positivo" : mom < -0.05 ? "negativo" : "estável";
-
-      // Score
-      const score = typeof last.confianca === "number" ? last.confianca : 0;
-      const scoreEl = document.getElementById("indScore");
-      scoreEl.className = "indicator " + (score >= 65 ? "up" : score < 40 ? "down" : "warn");
-      const scoreBar = document.getElementById("indScoreBar");
-      const scoreBarParent = scoreBar.parentElement;
-      scoreBarParent.className = "indicator-bar " + (score >= 65 ? "ibar-green" : score < 40 ? "ibar-red" : "ibar-yellow");
-      document.getElementById("indScoreVal").textContent = fmtNum(score, 1);
-      document.getElementById("indScoreSub").textContent = score >= 65 ? "libera trade" : score < 40 ? "bloqueio" : "cautela";
-      scoreBar.style.width = Math.max(0, Math.min(100, score)) + "%";
-    }
-
-    function renderHero(last) {
-      if (!last) return;
-      const dec = last.decisao || "esperar";
-      const heroEl = document.getElementById("hero");
-      heroEl.className = "hero " + dec;
-
-      document.getElementById("heroAtivo").textContent = last.ativo || "—";
-      document.getElementById("heroPreco").textContent = "preço atual: " + fmtNum(last.precoEntrada) + " — " + ago(last.timestamp);
-      const badge = document.getElementById("heroBadge");
-      badge.textContent = dec.toUpperCase();
-      badge.className = "badge-big b-" + dec;
-
-      const score = typeof last.confianca === "number" ? last.confianca : 0;
-      const heroConfEl = document.getElementById("heroConf");
-      heroConfEl.textContent = fmtNum(score, 1);
-      heroConfEl.className = score >= 65 ? "pos" : score < 40 ? "neg" : "mid";
-      document.getElementById("heroScoreMarker").style.left = Math.max(0, Math.min(100, score)) + "%";
-
-      const rsiVal = typeof last.rsi === "number" ? last.rsi : null;
-      const rsiInfo = rsiClassify(rsiVal);
-      document.getElementById("heroRsiVal").textContent = rsiVal === null ? "—" : fmtNum(rsiVal, 1);
-      const tag = document.getElementById("heroRsiTag");
-      tag.textContent = rsiInfo.tag;
-      tag.className = "rsi-tag " + rsiInfo.cls;
-      document.getElementById("heroRsiMarker").style.left = (rsiVal === null ? 50 : Math.max(0, Math.min(100, rsiVal))) + "%";
-    }
-
-    function renderReason(last) {
-      if (!last) return;
-      const just = (last.analise && last.analise.justificativa) || "(sem justificativa)";
-      const fonte = (last.analise && typeof last.analise.justificativa === "string" && last.analise.justificativa.toLowerCase().includes("fallback"))
-        ? "fallback heurístico"
-        : "IA Anthropic";
-      const why = document.getElementById("reasonText");
-      why.textContent = just;
-      why.className = "why " + (last.decisao === "compra" ? "ok" : last.decisao === "venda" ? "bad" : "");
-      document.getElementById("reasonFonte").textContent = fonte;
-      renderIndicators(last);
-    }
-
-    function renderMetrics(perf) {
-      document.getElementById("mTotal").textContent = perf.totalTrades ?? 0;
-      document.getElementById("mWr").textContent = (perf.winRate ?? 0) + "%";
-      document.getElementById("barWr").style.width = Math.min(100, perf.winRate ?? 0) + "%";
-
-      document.getElementById("mLucro").textContent = "+" + fmtNum(perf.lucro) + "%";
-      document.getElementById("mPrejuizo").textContent = "-" + fmtNum(perf.prejuizo) + "%";
-      const total = (perf.lucro || 0) + (perf.prejuizo || 0);
-      const lFlex = total > 0 ? (perf.lucro / total) : 0;
-      const pFlex = total > 0 ? (perf.prejuizo / total) : 0;
-      document.getElementById("barLucro").style.flex = lFlex;
-      document.getElementById("barPrejuizo").style.flex = pFlex;
-
-      const saldoNum = Number(perf.saldo) || 0;
-      const saldoEl = document.getElementById("mSaldo");
-      saldoEl.textContent = (saldoNum > 0 ? "+" : "") + fmtNum(saldoNum) + "%";
-      saldoEl.className = "metric-value " + clsSaldo(saldoNum);
-    }
-
-    function renderHistory(decisions) {
-      const hist = decisions.slice(-30).reverse();
-      document.getElementById("hist").innerHTML = hist.map((r) => {
-        const cls = r.decisao === "compra" ? "highlight-compra" : r.decisao === "venda" ? "highlight-venda" : "";
-        return '<tr class="' + cls + '">' +
-          "<td>" + fmtTs(r.timestamp) + "</td>" +
-          "<td>" + (r.ativo || "—") + "</td>" +
-          "<td>" + pill(r.decisao || "esperar") + "</td>" +
-          "<td>" + (r.tendencia || (r.analise && r.analise.tendencia) || "—") + "</td>" +
-          "<td>" + (r.confianca ?? "—") + "</td>" +
-          "<td>" + fmtNum(r.precoEntrada) + "</td>" +
-          "<td>" + pill(r.resultado || "neutro") + "</td>" +
-          "</tr>";
-      }).join("");
-    }
-
-    function renderAll(decisions, perf) {
-      const ativos = ativosUnicos(decisions);
-      if (ativos.length === 0) return;
-      if (!ativos.includes(ativoSelecionado)) ativoSelecionado = ativos[0];
-      renderTabs(ativos);
-
-      const latestPorAtivo = getLatestPerAtivo(decisions);
-      const lastDoAtivo = latestPorAtivo[ativoSelecionado] || null;
-
-      renderHero(lastDoAtivo);
-      renderReason(lastDoAtivo);
-      renderMetrics(perf);
-      renderChart(decisions);
-      renderHistory(decisions);
-
-      document.getElementById("lastUpdate").textContent = new Date().toLocaleTimeString("pt-BR");
-      document.getElementById("ativos").textContent = ativos.join(", ");
-      document.getElementById("totalCiclos").textContent = decisions.length;
-      updateBotStatus(lastDoAtivo && lastDoAtivo.timestamp);
-    }
-
-    async function safeFetchJson(url) {
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) throw new Error(url + " → HTTP " + res.status);
-      return res.json();
-    }
-
-    async function refresh() {
-      try {
-        const [decisions, perf] = await Promise.all([
-          safeFetchJson("/decisions"),
-          safeFetchJson("/performance")
-        ]);
-        cachedDecisions = Array.isArray(decisions) ? decisions : [];
-        cachedPerf = perf && typeof perf === "object" ? perf : {};
-        renderAll(cachedDecisions, cachedPerf);
-      } catch (err) {
-        console.error("[refresh] falhou:", err);
-        updateBotStatus(null);
-      }
-    }
-
-    refresh();
-    setInterval(refresh, 5000);
-  </script>
+  <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
+  <script src="/app.js"></script>
 </body>
 </html>

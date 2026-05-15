@@ -2,8 +2,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const DECISIONS_FILE = resolve(process.cwd(), "data", "decisions.json");
-const LIMITE_INATIVIDADE = 15;
-const LIMITE_BAIXA_FREQUENCIA = 10;
+const LIMITE_INATIVIDADE = 8;
+const LIMITE_BAIXA_FREQUENCIA = 6;
 
 interface DecisionRecord {
   ativo?: unknown;

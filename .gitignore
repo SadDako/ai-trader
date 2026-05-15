@@ -13,7 +13,9 @@ dist
 
 # dados gerados em runtime
 data/
+logs/
 *.log
+*.log.*
 
 # editor / OS
 .DS_Store

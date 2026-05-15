@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const DECISIONS_FILE = resolve(process.cwd(), "data", "decisions.json");
-const COOLDOWN_LIMITE = 2;
+const COOLDOWN_LIMITE = Number(process.env.LOSS_COOLDOWN_CANDLES ?? 10);
 
 interface DecisionRecord {
   ativo?: unknown;

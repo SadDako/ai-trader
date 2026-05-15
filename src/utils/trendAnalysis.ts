@@ -2,7 +2,7 @@ import { computeSMA } from "./sma.js";
 
 const PERIOD_CURTO = 9;
 const PERIOD_LONGO = 21;
-const LATERAL_THRESHOLD_PCT = 0.1;
+const LATERAL_THRESHOLD_PCT = 0.15;
 
 export type Tendencia = "alta" | "baixa" | "lateral";
 
