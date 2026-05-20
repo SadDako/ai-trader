@@ -2,6 +2,7 @@ import express from "express";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { timingSafeEqual } from "node:crypto";
 import { computePerformance } from "../utils/performance.js";
 import { computePerformanceSql, computeAjustePorDirecaoSql } from "../utils/performanceSql.js";
 import { runBacktest } from "../utils/backtest.js";
@@ -79,8 +80,10 @@ export function startServer(port?: number): ServerHandle {
       return;
     }
     const auth = req.get("authorization") ?? "";
-    const token = auth.startsWith("Bearer ") ? auth.slice(7).trim() : req.get("x-dashboard-token");
-    if (token === env.dashboardAuthToken) {
+    const presented = auth.startsWith("Bearer ")
+      ? auth.slice(7).trim()
+      : (req.get("x-dashboard-token") ?? "");
+    if (tokensMatch(presented, env.dashboardAuthToken)) {
       next();
       return;
     }
@@ -159,8 +162,7 @@ export function startServer(port?: number): ServerHandle {
     try {
       res.json(computePerformanceSql());
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      res.status(500).json({ error: msg });
+      sendServerError(res, "web.handler", err);
     }
   });
 
@@ -169,8 +171,7 @@ export function startServer(port?: number): ServerHandle {
     try {
       res.json(runBacktest());
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      res.status(500).json({ error: msg });
+      sendServerError(res, "web.handler", err);
     }
   });
 
@@ -179,8 +180,7 @@ export function startServer(port?: number): ServerHandle {
     try {
       res.json(computeAjustePorDirecaoSql());
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      res.status(500).json({ error: msg });
+      sendServerError(res, "web.handler", err);
     }
   });
 
@@ -190,8 +190,7 @@ export function startServer(port?: number): ServerHandle {
       const perf = analyzePerformance();
       res.json(perf);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      res.status(500).json({ error: msg });
+      sendServerError(res, "web.handler", err);
     }
   });
 
@@ -204,8 +203,7 @@ export function startServer(port?: number): ServerHandle {
       const momentum = Number(req.query.momentum ?? 0);
       res.json(computeConfidenceAdjustment({ decisao, tendencia, rsi, momentum }));
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      res.status(500).json({ error: msg });
+      sendServerError(res, "web.handler", err);
     }
   });
 
@@ -214,8 +212,7 @@ export function startServer(port?: number): ServerHandle {
     try {
       res.json(getStrategyPerformance());
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      res.status(500).json({ error: msg });
+      sendServerError(res, "web.handler", err);
     }
   });
 
@@ -226,8 +223,7 @@ export function startServer(port?: number): ServerHandle {
       const timeframe = typeof req.query.timeframe === "string" ? req.query.timeframe : "1m";
       res.json(await getCurrentMarketRegime(symbol, timeframe));
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      res.status(500).json({ error: msg });
+      sendServerError(res, "web.handler", err);
     }
   });
 
@@ -239,8 +235,7 @@ export function startServer(port?: number): ServerHandle {
       const market = await getMarketData(symbol, timeframe, 120);
       res.json({ ativo: symbol.toUpperCase(), timeframe, ...assessMarketQuality(market) });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      res.status(500).json({ error: msg });
+      sendServerError(res, "web.handler", err);
     }
   });
 
@@ -249,8 +244,7 @@ export function startServer(port?: number): ServerHandle {
     try {
       res.json(getMarketQualityStats());
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      res.status(500).json({ error: msg });
+      sendServerError(res, "web.handler", err);
     }
   });
 
@@ -271,8 +265,7 @@ export function startServer(port?: number): ServerHandle {
       }
       res.json(getLiveExecutionState(symbol || undefined));
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      res.status(500).json({ error: msg });
+      sendServerError(res, "web.handler", err);
     }
   });
 
@@ -282,8 +275,7 @@ export function startServer(port?: number): ServerHandle {
       const positionId = typeof _req.query.positionId === "string" ? _req.query.positionId : undefined;
       res.json(getTradeTimeline(positionId));
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      res.status(500).json({ error: msg });
+      sendServerError(res, "web.handler", err);
     }
   });
 
@@ -292,8 +284,7 @@ export function startServer(port?: number): ServerHandle {
     try {
       res.json(getExecutionAnalytics());
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      res.status(500).json({ error: msg });
+      sendServerError(res, "web.handler", err);
     }
   });
 
@@ -302,8 +293,7 @@ export function startServer(port?: number): ServerHandle {
     try {
       res.json(getExecutionHealth());
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      res.status(500).json({ error: msg });
+      sendServerError(res, "web.handler", err);
     }
   });
 
@@ -312,8 +302,7 @@ export function startServer(port?: number): ServerHandle {
     try {
       res.json(getExchangeConditions());
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      res.status(500).json({ error: msg });
+      sendServerError(res, "web.handler", err);
     }
   });
 
@@ -322,8 +311,7 @@ export function startServer(port?: number): ServerHandle {
     try {
       res.json(getAdvancedPortfolioAnalytics());
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      res.status(500).json({ error: msg });
+      sendServerError(res, "web.handler", err);
     }
   });
 
@@ -334,8 +322,7 @@ export function startServer(port?: number): ServerHandle {
       const horizon = req.query.horizonTrades !== undefined ? Number(req.query.horizonTrades) : 120;
       res.json(runMonteCarlo(iterations, horizon));
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      res.status(500).json({ error: msg });
+      sendServerError(res, "web.handler", err);
     }
   });
 
@@ -353,8 +340,7 @@ export function startServer(port?: number): ServerHandle {
       }
       res.json(getAdaptivePortfolioBrain({ ativo: symbol || undefined, market }));
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      res.status(500).json({ error: msg });
+      sendServerError(res, "web.handler", err);
     }
   });
 
@@ -364,8 +350,7 @@ export function startServer(port?: number): ServerHandle {
       const limit = req.query.limit !== undefined ? Number(req.query.limit) : 30;
       res.json({ source: "meta-brain", logs: recentMetaBrainLogs(limit) });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      res.status(500).json({ error: msg });
+      sendServerError(res, "web.handler", err);
     }
   });
 
@@ -379,9 +364,7 @@ export function startServer(port?: number): ServerHandle {
       });
       res.json(result);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      logger.error("repair", `falhou: ${msg}`);
-      res.status(500).json({ error: msg });
+      sendServerError(res, "repair", err);
     }
   });
 
@@ -392,8 +375,7 @@ export function startServer(port?: number): ServerHandle {
       const result = cached ?? repairBacktestData();
       res.json(result);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      res.status(500).json({ error: msg });
+      sendServerError(res, "web.handler", err);
     }
   });
 
@@ -402,9 +384,7 @@ export function startServer(port?: number): ServerHandle {
     try {
       res.json(computeDatasetStats());
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      logger.error("dataset", `stats falhou: ${msg}`);
-      res.status(500).json({ error: msg });
+      sendServerError(res, "dataset.stats", err);
     }
   });
 
@@ -422,9 +402,7 @@ export function startServer(port?: number): ServerHandle {
       res.set("X-Dataset-Bytes", String(result.bytes));
       createReadStream(result.path).pipe(res);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      logger.error("dataset", `export falhou: ${msg}`);
-      res.status(500).json({ error: msg });
+      sendServerError(res, "dataset.export", err);
     }
   });
 
@@ -435,8 +413,7 @@ export function startServer(port?: number): ServerHandle {
       const retrain = getRetrainStatus();
       res.json({ model: meta, retrain });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      res.status(500).json({ error: msg });
+      sendServerError(res, "web.handler", err);
     }
   });
 
@@ -458,8 +435,7 @@ export function startServer(port?: number): ServerHandle {
       };
       res.json(predictTradeProbability(ctx));
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      res.status(500).json({ error: msg });
+      sendServerError(res, "web.handler", err);
     }
   });
 
@@ -470,9 +446,7 @@ export function startServer(port?: number): ServerHandle {
       logger.info("ml", "retrain manual via POST /ml/retrain", result || {});
       res.json(result || { ok: false, error: "retrain em progresso ou indisponível" });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      logger.error("ml", `retrain endpoint falhou: ${msg}`);
-      res.status(500).json({ error: msg });
+      sendServerError(res, "ml.retrain", err);
     }
   });
 
@@ -482,8 +456,8 @@ export function startServer(port?: number): ServerHandle {
       const h = getHealth();
       res.status(h.online ? 200 : 503).json(h);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      res.status(500).json({ online: false, error: msg });
+      logger.error("health", err instanceof Error ? err.message : String(err));
+      res.status(500).json({ online: false, error: "internal_error" });
     }
   });
 
@@ -496,8 +470,7 @@ export function startServer(port?: number): ServerHandle {
         engine: "node:sqlite"
       });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      res.status(500).json({ error: msg });
+      sendServerError(res, "web.handler", err);
     }
   });
 
@@ -540,6 +513,19 @@ export function startServer(port?: number): ServerHandle {
   });
 
   return { port: PORT, close: () => server.close() };
+}
+
+function tokensMatch(presented: string, expected: string): boolean {
+  const a = Buffer.from(presented, "utf8");
+  const b = Buffer.from(expected, "utf8");
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
+
+function sendServerError(res: express.Response, scope: string, err: unknown): void {
+  const detail = err instanceof Error ? err.message : String(err);
+  logger.error(scope, detail);
+  res.status(500).json({ error: "internal_error" });
 }
 
 interface RouteInfo { path: string; methods: string[]; }

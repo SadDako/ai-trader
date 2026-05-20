@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# AI-Trader anti-secret pre-commit hook.
+# Enable once per clone:  git config core.hooksPath .githooks
+#
+# Blocks commits where any *staged* file contains a high-confidence secret pattern.
+# Runs only on the diff being committed — no full-repo scan.
+
+set -u
+
+red()   { printf "\033[0;31m%s\033[0m\n" "$*" >&2; }
+green() { printf "\033[0;32m%s\033[0m\n" "$*"; }
+yellow(){ printf "\033[0;33m%s\033[0m\n" "$*"; }
+
+# Patterns that must never enter a commit.
+PATTERNS=(
+  'sk-ant-[A-Za-z0-9_-]{20,}'                                # Anthropic
+  'sk-[A-Za-z0-9]{20,}'                                       # generic sk-
+  'AKIA[0-9A-Z]{16}'                                          # AWS access key
+  'ASIA[0-9A-Z]{16}'                                          # AWS session key
+  'ghp_[A-Za-z0-9]{36,}'                                      # GitHub PAT
+  'gho_[A-Za-z0-9]{36,}'                                      # GitHub OAuth
+  'ghs_[A-Za-z0-9]{36,}'                                      # GitHub server
+  'xox[baprs]-[A-Za-z0-9-]{10,}'                              # Slack
+  '-----BEGIN [A-Z ]*PRIVATE KEY-----'                        # PEM private key
+  'X-MBX-APIKEY[[:space:]]*[:=][[:space:]]*[A-Za-z0-9]{32,}'  # Binance
+  '(?i)bybit[_-]?api[_-]?secret[[:space:]]*[:=][[:space:]]*[A-Za-z0-9]{18,}'
+)
+
+# Files staged for this commit (added/modified/copied/renamed, no deletions).
+mapfile -t STAGED < <(git diff --cached --name-only --diff-filter=ACMR)
+
+if [ "${#STAGED[@]}" -eq 0 ]; then
+  exit 0
+fi
+
+# Refuse to commit .env or .env.* (except .env.example).
+for f in "${STAGED[@]}"; do
+  case "$f" in
+    .env|.env.*)
+      if [ "$f" != ".env.example" ]; then
+        red "[pre-commit] BLOCKED: refusing to commit $f"
+        yellow "[pre-commit] Add it to .gitignore and 'git restore --staged $f'"
+        exit 1
+      fi
+      ;;
+  esac
+done
+
+FOUND=0
+for f in "${STAGED[@]}"; do
+  # Skip binaries, lock files, the gitleaks config, and example/docs.
+  case "$f" in
+    package-lock.json|*.png|*.jpg|*.jpeg|*.gif|*.pdf|*.zip|.gitleaks.toml|.env.example|.githooks/*)
+      continue
+      ;;
+  esac
+
+  for pat in "${PATTERNS[@]}"; do
+    if git diff --cached -U0 -- "$f" | grep -E "^\+" | grep -Eq "$pat"; then
+      red "[pre-commit] SECRET PATTERN FOUND in $f"
+      red "  pattern: $pat"
+      FOUND=1
+    fi
+  done
+done
+
+if [ "$FOUND" -ne 0 ]; then
+  red "[pre-commit] Commit blocked: remove the secret, rotate it, then retry."
+  yellow "  - Move it to .env (which is gitignored)."
+  yellow "  - If the secret was already pushed, rotate it immediately."
+  exit 1
+fi
+
+green "[pre-commit] OK — no high-confidence secrets in staged diff."
+exit 0
