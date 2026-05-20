@@ -1,4 +1,4 @@
-import { logger } from "./logger.js";
+import { logger, redactSensitive } from "./logger.js";
 
 const MAX_RECENT_ERRORS = 20;
 const STALE_HEARTBEAT_MS = 90_000;
@@ -54,7 +54,7 @@ export function recordBinanceFetch(symbol: string, klines: number): void {
 }
 
 export function recordError(scope: string, err: unknown): void {
-  const message = err instanceof Error ? (err.stack ?? err.message) : String(err);
+  const message = redactSensitive(err instanceof Error ? (err.stack ?? err.message) : String(err));
   const entry: RecentError = {
     timestamp: new Date().toISOString(),
     scope,

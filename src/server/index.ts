@@ -22,6 +22,7 @@ import { getMarketData } from "../services/market.service.js";
 import { getAdvancedPortfolioAnalytics, getExchangeConditions, getExecutionAnalytics, getExecutionHealth, getLiveExecutionState, getOpenPositionSymbols, getTradeTimeline, updateIntrabarFromMarketData } from "../execution/executionEngine.js";
 import { getAdaptivePortfolioBrain, recentMetaBrainLogs } from "../meta/metaPerformance.js";
 import { runMonteCarlo } from "../quant/monteCarlo.js";
+import { env, validateEnvironment } from "../config/env.js";
 
 interface RawDecision {
   [key: string]: unknown;
@@ -51,12 +52,40 @@ export interface ServerHandle {
 }
 
 export function startServer(port?: number): ServerHandle {
-  const PORT = port ?? Number(process.env.WEB_PORT ?? 3000);
+  const PORT = port ?? env.webPort;
+  const HOST = env.webHost;
   const DECISIONS_FILE = resolve(process.cwd(), "data", "decisions.json");
   const PUBLIC_DIR = resolve(process.cwd(), "public");
 
   const app = express();
   app.use(express.json({ limit: "256kb" }));
+  app.disable("x-powered-by");
+  app.set("trust proxy", false);
+
+  for (const warning of validateEnvironment()) {
+    logger.warn("security.env", warning);
+  }
+
+  app.use((req, res, next) => {
+    res.set("X-Content-Type-Options", "nosniff");
+    res.set("Referrer-Policy", "no-referrer");
+    res.set("X-Frame-Options", "DENY");
+    next();
+  });
+
+  app.use((req, res, next) => {
+    if (env.disableDashboardAuth || !env.dashboardAuthToken) {
+      next();
+      return;
+    }
+    const auth = req.get("authorization") ?? "";
+    const token = auth.startsWith("Bearer ") ? auth.slice(7).trim() : req.get("x-dashboard-token");
+    if (token === env.dashboardAuthToken) {
+      next();
+      return;
+    }
+    res.status(401).json({ error: "unauthorized" });
+  });
 
   // Wrapper que registra com try/catch — se um handler explodir o servidor sobe sem rota fantasma
   const safeGet = (path: string, handler: express.RequestHandler): void => {
@@ -484,10 +513,11 @@ export function startServer(port?: number): ServerHandle {
   for (const r of rotas) console.log(`[BOOT] route registered: ${r.methods.join(",")} ${r.path}`);
   logger.info("web.boot", `rotas registradas: ${rotas.length}`, { routes: rotas });
 
-  const server = app.listen(PORT, () => {
-    console.log(`[web] Dashboard em http://localhost:${PORT}`);
-    logger.info("web", `Dashboard online em http://localhost:${PORT}`, {
+  const server = app.listen(PORT, HOST, () => {
+    console.log(`[web] Dashboard em http://${HOST}:${PORT}`);
+    logger.info("web", `Dashboard online em http://${HOST}:${PORT}`, {
       pid: process.pid,
+      host: HOST,
       rotas: rotas.length,
       versaoServidor: SERVER_VERSION
     });

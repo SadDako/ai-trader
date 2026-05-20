@@ -1,11 +1,10 @@
-import dotenv from "dotenv";
 import type { MarketData } from "../types/index.js";
 import { computeRSI } from "../utils/rsi.js";
 import { analyzeTrend } from "../utils/trendAnalysis.js";
 import { computeMomentum } from "../utils/momentum.js";
 import { detectBreakout } from "../utils/breakout.js";
-
-dotenv.config({ override: true });
+import { env } from "../config/env.js";
+import { redactSensitive } from "../utils/logger.js";
 
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION = "2023-06-01";
@@ -183,13 +182,13 @@ function safeParse(raw: string): AIResponse | null {
 }
 
 export async function callAI<T = AIResponse>(prompt: string, market?: MarketData): Promise<T> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = env.anthropicApiKey;
   if (!apiKey) {
     console.error("[ai.service] ANTHROPIC_API_KEY ausente — usando fallback.");
     return buildFallback(market, "ANTHROPIC_API_KEY ausente") as T;
   }
 
-  const model = process.env.ANTHROPIC_MODEL ?? DEFAULT_MODEL;
+  const model = env.anthropicModel ?? DEFAULT_MODEL;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -212,7 +211,7 @@ export async function callAI<T = AIResponse>(prompt: string, market?: MarketData
 
     if (!res.ok) {
       const body = await res.text().catch(() => "");
-      console.error(`[ai.service] HTTP ${res.status}: ${body}`);
+      console.error(`[ai.service] HTTP ${res.status}: ${redactSensitive(body).slice(0, 500)}`);
       return buildFallback(market, `HTTP ${res.status}`) as T;
     }
 
@@ -230,7 +229,7 @@ export async function callAI<T = AIResponse>(prompt: string, market?: MarketData
 
     const parsed = safeParse(text);
     if (!parsed) {
-      console.error(`[ai.service] JSON inválido. Resposta bruta: ${text}`);
+      console.error(`[ai.service] JSON invalido. Resposta bruta: ${redactSensitive(text).slice(0, 500)}`);
       return buildFallback(market, "JSON inválido") as T;
     }
     return parsed as T;

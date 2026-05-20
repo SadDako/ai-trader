@@ -2,6 +2,7 @@
   "name": "ia-trader",
   "version": "1.0.0",
   "description": "Draxon Trader AI - multi-agent trading analysis",
+  "private": true,
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
@@ -9,11 +10,12 @@
     "dev": "tsx watch src/index.ts",
     "web": "tsx src/server/index.ts",
     "build": "tsc",
-    "serve": "node dist/index.js"
+    "serve": "node dist/index.js",
+    "security:audit": "npm audit --audit-level=moderate"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "UNLICENSED",
   "dependencies": {
     "axios": "^1.15.2",
     "dotenv": "^17.4.2",

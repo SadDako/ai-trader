@@ -1,220 +1,180 @@
-# AI Trader
+# AI Trader System
 
-> Autonomous multi-agent trading system that combines LLM-powered analysis, real-time market data, technical indicators, machine learning, and self-correcting decision logic.
+AI Trader System is a private quantitative trading automation platform built with TypeScript, Node.js, Express, SQLite, technical indicators, machine learning, and LLM-assisted market analysis. The system is designed as a controlled research and execution-support engine: it collects market data, evaluates signals through multiple independent layers, applies risk gates, persists decisions, and feeds outcomes back into adaptive scoring.
 
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)
-![Node.js](https://img.shields.io/badge/Node.js-22%2B-339933?style=flat&logo=nodedotjs&logoColor=white)
-![Express](https://img.shields.io/badge/Express-000000?style=flat&logo=express&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat&logo=sqlite&logoColor=white)
-![Anthropic](https://img.shields.io/badge/LLM%20%E2%80%94%20Claude-D97757?style=flat&logo=anthropic&logoColor=white)
-![Random Forest](https://img.shields.io/badge/ML%20%E2%80%94%20Random%20Forest-FF6F00?style=flat&logo=scikitlearn&logoColor=white)
-
----
+> Financial disclaimer: this software is for research, simulation, and controlled internal use only. It does not provide financial advice, does not guarantee profit, and must not be connected to live capital without independent validation, risk limits, exchange-level safeguards, and human oversight.
 
 ## Overview
 
-AI Trader is a backend automation platform for algorithmic trading. It uses a **multi-agent orchestration architecture** where a sentiment agent (LLM-powered) and a technical analysis agent independently evaluate market conditions. An orchestrator synthesises both signals, weighs them against historical performance, and applies a layered risk engine before committing — or skipping — each decision.
+The platform combines deterministic quantitative logic with optional LLM analysis. Market data is fetched from public exchange endpoints, transformed into technical features, evaluated by strategy intelligence modules, scored by a Random Forest model, and filtered through portfolio and risk controls before a final decision is persisted.
 
-The system **learns from itself**: every decision is persisted, evaluated against outcome, and fed back into both a rule-based weighting system and a Random Forest model that predicts signal quality. It also **regime-detects** the market (trending, ranging, volatile, dead) and adjusts strategy accordingly.
+Current behavior is conservative by design:
 
-A built-in **backtest engine** replays historical data through the full pipeline so strategy changes can be validated before going live.
-
----
+- Public market-data ingestion only; no exchange private keys are required.
+- Runtime artifacts are isolated under `data/` and `logs/`, both ignored by Git.
+- LLM credentials are loaded only from `.env`.
+- The dashboard binds to `127.0.0.1` by default and supports bearer-token protection.
+- Logs are redacted before being written to disk.
 
 ## Architecture
 
-```
+```text
 src/
-├── agents/
-│   ├── sentimento.agent.ts        # LLM-powered sentiment analysis (Claude)
-│   └── tecnico.agent.ts           # Technical indicators analysis agent
-│
-├── orchestrator/
-│   └── trading.orchestrator.ts    # Coordinates agents, applies decision pipeline
-│
-├── services/
-│   ├── ai.service.ts              # LLM (Anthropic) integration layer
-│   └── market.service.ts          # Real-time market data ingestion
-│
-├── state/
-│   ├── marketMemory.ts            # In-process market state across cycles
-│   ├── database.ts                # SQLite (node:sqlite) connection + schema
-│   └── decisionsRepo.ts           # Decision persistence repository
-│
-├── ml/
-│   ├── featureEncoder.ts          # Encodes market state → feature vector
-│   ├── modelManager.ts            # Loads/saves trained models from disk
-│   ├── trainModel.ts              # Trains Random Forest on labelled decisions
-│   ├── predictSignal.ts           # Inference: predicts signal quality
-│   └── autoRetrain.ts             # Scheduled retraining loop
-│
-├── prompts/
-│   └── tecnico.prompt.ts          # Prompt templates for technical agent
-│
-├── utils/
-│   ├── rsi.ts · sma.ts · momentum.ts · breakout.ts   # Indicator primitives
-│   ├── patternAnalysis.ts         # Candlestick pattern recognition
-│   ├── trendAnalysis.ts           # Trend direction & strength
-│   ├── indicator.ts               # Indicator orchestration
-│   ├── marketRegime.ts            # Regime detection (trend / range / chop / dead)
-│   ├── marketFilters.ts           # Pre-trade filters (liquidity, volatility)
-│   ├── marketQuality.ts           # Quality scoring of current market conditions
-│   ├── riskManager.ts             # Position sizing & risk gating
-│   ├── lossCooldown.ts            # Anti-revenge-trade cooldown
-│   ├── inactivityCheck.ts         # Stale-data and inactivity detection
-│   ├── forceExploration.ts        # Exploration enforcement (anti-overfit)
-│   ├── score.ts                   # Composite signal scoring
-│   ├── learning.ts                # Rule-based weight updates
-│   ├── learningContext.ts         # Context window for learning loop
-│   ├── strategyIntelligence.ts    # Meta-strategy selection
-│   ├── evaluateDecision.ts        # Outcome evaluation of past decisions
-│   ├── performance.ts             # In-memory P&L tracking
-│   ├── performanceSql.ts          # SQL-backed performance queries
-│   ├── saveDecision.ts            # Decision persistence (JSON + SQL)
-│   ├── analyzeHistory.ts          # Historical decision analysis
-│   ├── backtest.ts                # Backtest engine
-│   ├── backtestRepair.ts          # Backtest data cleaning / gap repair
-│   ├── datasetBuilder.ts          # Builds ML training datasets
-│   ├── healthMonitor.ts           # Runtime health checks
-│   ├── logger.ts                  # Structured logging
-│   ├── safeMath.ts                # Numeric guards (NaN, Infinity, divide-by-zero)
-│   └── bootstrap.ts               # Startup wiring
-│
-└── server/
-    └── index.ts                   # Express API + dashboard server
+  agents/          Domain agents for technical and sentiment-style analysis
+  config/          Environment loading and validation
+  execution/       Simulated execution, positions, fills, slippage, and portfolio state
+  exchange/        Exchange friction and market-condition abstractions
+  meta/            Adaptive portfolio brain and strategy health memory
+  ml/              Feature encoding, Random Forest training, inference, auto-retrain
+  orchestrator/    Main trading decision pipeline
+  prompts/         Prompt templates for LLM-assisted analysis
+  quant/           Monte Carlo simulation and risk distribution tools
+  server/          Express API and local dashboard
+  services/        LLM and public market-data integrations
+  state/           SQLite schema, repositories, and in-process memory
+  types/           Shared TypeScript contracts
+  utils/           Indicators, scoring, risk, logging, backtest, datasets, health
 ```
 
----
+## Decision Pipeline
 
-## Features
+1. Fetch OHLCV candles from public Binance market-data endpoints.
+2. Compute technical indicators: RSI, SMA trend, momentum, breakout, ATR, market quality.
+3. Detect market regime and setup type.
+4. Generate an optional LLM-assisted market read via Anthropic if `ANTHROPIC_API_KEY` is configured.
+5. Score the signal using rule-based strategy intelligence and historical performance.
+6. Run ML inference with the trained Random Forest model when a model is available.
+7. Apply risk gates: volatility, liquidity, regime fit, loss cooldown, inactivity, edge quality, and adaptive portfolio stress.
+8. Persist the decision to SQLite and JSON runtime storage.
+9. Evaluate later outcomes and use them for learning, backtests, datasets, and retraining.
 
-- **Dual-agent analysis** — Sentiment agent (Claude) and technical agent run independently and produce signed signals.
-- **Orchestrated decisioning** — A central orchestrator weights signals against past performance and applies a multi-stage risk pipeline.
-- **Technical indicators from scratch** — RSI, SMA, momentum, breakout detection, pattern & trend analysis — no external TA library.
-- **Machine learning loop** — Random Forest model (`ml-random-forest`) is trained on labelled decision history and used to score new signals; auto-retrains on a schedule.
-- **Market regime detection** — Trades are gated by detected regime (trend / range / chop / dead market).
-- **Layered risk management** — Loss cooldown, inactivity guard, volatility/liquidity filters, and a `riskManager` that handles sizing and exposure caps.
-- **Self-evaluation** — Each closed decision is evaluated; the result feeds both rule-based weights and the ML dataset.
-- **Backtest engine** — Replays historical data through the full pipeline; includes a repair pass to handle gaps and bad ticks.
-- **SQLite persistence** — Uses Node's built-in `node:sqlite` (Node 22+) — zero native deps, single file at `data/trader.db`.
-- **REST API + dashboard** — Express server with a static dashboard (`public/`) for live decisions, metrics and controls.
+## Modules
 
----
+| Area | Main files | Purpose |
+|---|---|---|
+| Orchestration | `src/orchestrator/trading.orchestrator.ts` | Coordinates market data, agents, scoring, risk filters, and final decisioning. |
+| AI service | `src/services/ai.service.ts` | Calls Anthropic only when an API key exists; otherwise uses deterministic fallback. |
+| Market service | `src/services/market.service.ts` | Fetches and validates public market candles. |
+| Risk and quality | `src/utils/riskManager.ts`, `src/utils/marketQuality.ts`, `src/utils/marketFilters.ts` | Blocks low-quality setups and calculates risk-aware trade context. |
+| Execution model | `src/execution/*` | Simulates order lifecycle, slippage, portfolio snapshots, and position analytics. |
+| ML | `src/ml/*` | Builds features, trains Random Forest models, performs inference, and auto-retrains. |
+| Persistence | `src/state/database.ts`, `src/state/decisionsRepo.ts` | Stores decisions, execution events, strategy performance, and meta logs in SQLite. |
+| Dashboard/API | `src/server/index.ts`, `public/*` | Local operational view and REST endpoints. |
+| Security | `src/config/env.ts`, `src/utils/logger.ts`, `.gitignore` | Environment validation, log redaction, and secret-safe repository boundaries. |
 
-## Tech Stack
+## Risk Management
 
-| Layer | Technology |
-|---|---|
-| Language | TypeScript |
-| Runtime | Node.js **22+** (uses built-in `node:sqlite`) |
-| API & Server | Express |
-| LLM | Anthropic Claude (configurable via `.env`) |
-| ML | `ml-random-forest` |
-| HTTP Client | Axios |
-| Persistence | SQLite (`node:sqlite`) + JSON snapshots |
-| Frontend | Vanilla HTML/CSS/JS dashboard |
+The system applies multiple defensive layers before allowing an operational signal:
 
----
+- Minimum score thresholds with adaptive adjustments.
+- Volatility and liquidity checks using ATR, ATR percentage, and volume context.
+- Market-regime penalties for setups that do not fit current conditions.
+- Historical edge scoring by setup, direction, asset, timeframe, and regime.
+- Post-loss cooldown to reduce revenge-trade behavior.
+- Low-frequency and inactivity checks to avoid stale decision loops.
+- Portfolio stress controls that adapt risk mode and minimum confidence.
+- ML probability checks that can penalize or block weak signals.
 
-## Getting Started
+These controls are software safeguards, not a substitute for exchange-side limits, account-level drawdown caps, or supervised deployment.
 
-### Prerequisites
+## Security Model
 
-```bash
-node >= 22       # required for built-in node:sqlite
-npm
-```
+- Secrets live only in `.env`; `.env` and `.env.*` are ignored.
+- `.env.example` contains neutral placeholders only.
+- Runtime databases, model files, datasets, and logs are ignored.
+- Logs redact common token, password, API key, bearer, GitHub, AWS, Slack, and private-key patterns.
+- Dashboard/API defaults to `WEB_HOST=127.0.0.1`.
+- `DASHBOARD_AUTH_TOKEN` enables bearer-token or `x-dashboard-token` protection.
+- Express disables `X-Powered-By` and sets basic hardening headers.
+- Dependency audit is available through `npm run security:audit`.
 
-### Installation
+Recommended operational controls:
 
-```bash
-git clone https://github.com/SadDako/ai-trader.git
-cd ai-trader
-npm install
+- Rotate any credential that was ever stored outside a secret manager.
+- Use read-only or least-privilege API keys for research.
+- Do not enable withdrawal permissions on exchange keys.
+- Keep live execution behind a private network, VPN, or zero-trust gateway.
+- Review `git status`, `git diff --cached`, and secret scans before every push.
 
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your API key
-```
+## Environment
 
-### Environment Variables
+Create a local `.env` from `.env.example`:
 
 ```env
-ANTHROPIC_API_KEY=sk-ant-...
+ANTHROPIC_API_KEY=your-api-key-here
 ANTHROPIC_MODEL=claude-sonnet-4-6
+WEB_HOST=127.0.0.1
+WEB_PORT=3000
+DASHBOARD_AUTH_TOKEN=your-dashboard-token-here
+DISABLE_DASHBOARD_AUTH=false
 ```
 
-### Run
+`ANTHROPIC_API_KEY` is optional. Without it, the system continues with deterministic fallback analysis.
+
+## Installation
+
+Requirements:
+
+- Node.js 22 or newer
+- npm
 
 ```bash
-# Development (CLI loop)
+npm install
+cp .env.example .env
+npm run build
+```
+
+## Execution
+
+```bash
+# Trading loop with local dashboard
+npm run start
+
+# Watch mode during development
 npm run dev
 
-# Web dashboard + API
+# Dashboard/API only
 npm run web
 
-# Production build
+# Build TypeScript
 npm run build
-npm run serve
+
+# Dependency security audit
+npm run security:audit
 ```
 
-The dashboard is served on the port configured in the Express server (`src/server/index.ts`).
+The dashboard defaults to `http://127.0.0.1:3000`.
 
----
+When `DASHBOARD_AUTH_TOKEN` is configured, call protected endpoints with:
 
-## How It Works
-
-1. **Market data** is fetched and normalised by `market.service.ts`.
-2. **Market regime** is detected — strategy gates open or stay shut accordingly.
-3. **Sentiment agent** receives market context and asks Claude for a directional read.
-4. **Technical agent** computes RSI, SMA, momentum, breakout, patterns and trend from raw OHLCV.
-5. **ML predictor** scores the combined signal against a Random Forest trained on past outcomes.
-6. **Orchestrator** weighs all three sources, applies `marketQuality` and `marketFilters`, and produces a candidate decision.
-7. **Risk pipeline** runs: loss cooldown → inactivity → risk manager → exploration enforcement.
-8. **Decision is persisted** to SQLite and JSON for audit, backtest and future training.
-9. **Evaluation** runs against subsequent ticks; outcome feeds back into both rule weights and the ML training set.
-10. **Auto-retrain** rebuilds the model when enough new labelled data accumulates.
-
----
-
-## Technical Highlights
-
-- **Agent pattern with orchestration** — Each agent owns one concern; the orchestrator owns synthesis and decisioning.
-- **Hybrid scoring** — Rule-based weights *and* a Random Forest model vote on every decision, balancing interpretability with adaptivity.
-- **Regime-aware** — The same input produces different output depending on detected market regime; this prevents over-trading in dead markets.
-- **Self-correcting** — Outcome evaluation rewrites both rule weights and ML training labels — the system improves without human tuning.
-- **Backtest-first** — Any strategy change can be validated on historical data through the same pipeline used in production.
-- **Zero-native-deps persistence** — `node:sqlite` (Node 22+) means no `better-sqlite3` compile step; container-friendly.
-- **Strictly typed** — TypeScript end-to-end; interfaces for market data, signals, decisions, and performance.
-
----
-
-## Project Structure (high-level)
-
-```
-.
-├── data/                # runtime artefacts: SQLite DB, decision snapshots, ML models (gitignored)
-├── logs/                # runtime logs (gitignored)
-├── public/              # static dashboard (HTML/CSS/JS)
-├── src/                 # application source (see Architecture above)
-├── .env.example         # template for environment variables
-├── package.json
-└── tsconfig.json
+```bash
+Authorization: Bearer <your-dashboard-token>
 ```
 
-> `data/` and `logs/` are runtime-generated and excluded from git on purpose.
+## Runtime Data
 
----
+The following paths are intentionally excluded from Git:
+
+- `data/trader.db`
+- `data/decisions.json`
+- `data/datasets/`
+- `data/models/`
+- `logs/`
+- `dist/`
+- `node_modules/`
+
+These files can contain operational history, generated models, local market decisions, and diagnostic data. They must be backed up and secured separately if needed.
 
 ## Roadmap
 
-- Pluggable exchange execution layer
-- Multi-asset portfolio orchestration
-- Online learning (incremental updates without full retrain)
-- Strategy versioning and A/B comparison through the dashboard
-
----
+- Pluggable private exchange execution with least-privilege key support.
+- Dry-run/live execution mode separation with explicit kill switch.
+- Per-strategy versioning and experiment tracking.
+- CI secret scanning and dependency audit gates.
+- Docker deployment profile with non-root runtime user.
+- Portfolio-level capital allocation and max drawdown enforcement.
+- Signed release workflow for private deployments.
 
 ## License
 
-MIT
+Private/internal software. All rights reserved unless a separate license is provided.

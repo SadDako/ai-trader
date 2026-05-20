@@ -1,6 +1,3 @@
-import dotenv from "dotenv";
-dotenv.config({ override: true });
-
 import { runTradingCycle } from "./orchestrator/trading.orchestrator";
 import { saveDecision } from "./utils/saveDecision";
 import { startServer } from "./server/index";
@@ -8,6 +5,7 @@ import { logger } from "./utils/logger";
 import { heartbeat, recordError, startWatchdog } from "./utils/healthMonitor";
 import { safeNumber } from "./utils/safeMath";
 import { startAutoRetrainLoop } from "./ml/autoRetrain";
+import { validateEnvironment } from "./config/env";
 
 const CYCLE_INTERVAL_MS = 30_000;
 const PER_ATIVO_TIMEOUT_MS = 60_000;
@@ -113,6 +111,12 @@ async function loop(symbols: string[]): Promise<void> {
 }
 
 async function main(): Promise<void> {
+  const envWarnings = validateEnvironment();
+  for (const warning of envWarnings) {
+    console.warn(`[security] ${warning}`);
+    logger.warn("security.env", warning);
+  }
+
   const symbols = parseSymbols(process.argv);
   const startMsg = `Iniciando loop a cada ${CYCLE_INTERVAL_MS / 1000}s para ${symbols.join(", ")}`;
   console.log(`[Draxon Trader AI] ${startMsg}. Ctrl+C para parar.`);
